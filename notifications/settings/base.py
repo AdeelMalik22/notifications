@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "apps.common",
+    "apps.delivery",
     "apps.health",
 ]
 
@@ -135,6 +136,10 @@ EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "1025"))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "false").lower() == "true"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "notifications@example.test")
+SMS_PROVIDER_BACKEND = os.getenv(
+    "SMS_PROVIDER_BACKEND",
+    "apps.delivery.providers.fake_sms.FakeSMSProvider",
+)
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "amqp://guest:guest@localhost:5672//")
 CELERY_RESULT_BACKEND = None
