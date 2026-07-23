@@ -1,0 +1,1 @@
+"""Cross-application test suite."""

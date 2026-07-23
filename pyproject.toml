@@ -1,0 +1,68 @@
+[project]
+name = "notificationos"
+version = "0.1.0"
+description = "A multi-tenant notification delivery platform."
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "celery[redis]>=5.6.3,<5.7",
+    "django>=5.2.16,<5.3",
+    "djangorestframework>=3.17.1,<3.18",
+    "drf-spectacular>=0.30.0,<0.31",
+    "gunicorn>=23.0.0,<24",
+    "psycopg[binary]>=3.2.0,<3.3",
+    "redis>=6.0.0,<7",
+]
+
+[dependency-groups]
+dev = [
+    "django-stubs[compatible-mypy]>=5.2.0,<5.3",
+    "djangorestframework-stubs>=3.16.0,<3.18",
+    "mypy>=1.16.0,<2",
+    "pytest>=8.4.0,<10",
+    "pytest-cov>=6.0.0,<8",
+    "pytest-django>=4.11.0,<5",
+    "ruff>=0.12.0,<1",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "notifications.settings.test"
+addopts = "--strict-config --strict-markers --disable-warnings"
+python_files = ["test_*.py"]
+testpaths = ["apps", "tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["apps", "notifications"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["B", "DJ", "E", "F", "I", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+strict = true
+warn_unreachable = true
+exclude = [".venv", "migrations"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "notifications.settings.test"
