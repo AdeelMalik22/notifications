@@ -29,8 +29,7 @@ package = false
 default-groups = ["dev"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "notifications.settings.test"
-addopts = "--strict-config --strict-markers --disable-warnings"
+addopts = "--strict-config --strict-markers --disable-warnings --ds=notifications.settings.test"
 python_files = ["test_*.py"]
 testpaths = ["apps", "tests"]
 

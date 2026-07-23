@@ -50,6 +50,7 @@ outside a developer machine.
 ```bash
 make install
 make check
+make ci
 make format
 make test
 make migrate
@@ -59,6 +60,14 @@ make down
 
 `make down` preserves database and broker volumes. It does not delete developer
 data.
+
+Every push and pull request runs the same quality gates in GitHub Actions,
+including coverage, migration consistency, OpenAPI validation, Django deployment
+checks, a real PostgreSQL/Redis/RabbitMQ integration pass, and a production image
+build.
+
+`make ci` runs the host-side quality gates. GitHub additionally starts real
+services and boots the production container image.
 
 ## Runtime responsibilities
 

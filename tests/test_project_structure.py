@@ -20,3 +20,9 @@ class ProjectStructureTests(SimpleTestCase):
     def test_delivery_state_is_not_stored_in_celery(self) -> None:
         assert settings.CELERY_RESULT_BACKEND is None
         assert settings.CELERY_TASK_IGNORE_RESULT is True
+
+    def test_unit_tests_use_an_isolated_in_memory_database(self) -> None:
+        database = settings.DATABASES["default"]
+
+        assert database["ENGINE"] == "django.db.backends.sqlite3"
+        assert database["NAME"] == ":memory:"
