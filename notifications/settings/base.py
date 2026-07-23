@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "apps.common",
+    "apps.health",
 ]
 
 MIDDLEWARE = [
@@ -78,6 +80,10 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
         "TIMEOUT": 300,
+        "OPTIONS": {
+            "socket_connect_timeout": 1,
+            "socket_timeout": 1,
+        },
     },
 }
 
