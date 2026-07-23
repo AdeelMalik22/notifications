@@ -1,0 +1,178 @@
+name: ${COMPOSE_PROJECT_NAME:-notificationos}
+
+x-app-environment: &app-environment
+  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-notifications.settings.local}
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-development-key-change-before-deployment}
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,web}
+  DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:8000}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  POSTGRES_DB: ${POSTGRES_DB:-notifications}
+  POSTGRES_USER: ${POSTGRES_USER:-notifications}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-postgres-password}
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  REDIS_URL: redis://redis:6379/1
+  RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-notifications}
+  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-local-rabbitmq-password}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://notifications:local-rabbitmq-password@rabbitmq:5672//}
+  EMAIL_HOST: mailpit
+  EMAIL_PORT: "1025"
+  EMAIL_USE_TLS: "false"
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-notifications@example.test}
+  SMS_PROVIDER_BACKEND: apps.delivery.providers.fake_sms.FakeSMSProvider
+
+x-app-service: &app-service
+  build:
+    context: .
+  environment: *app-environment
+  init: true
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-notifications}
+      POSTGRES_USER: ${POSTGRES_USER:-notifications}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-postgres-password}
+    ports:
+      - "${POSTGRES_FORWARD_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-notifications} -d ${POSTGRES_DB:-notifications}",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_FORWARD_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-notifications}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-local-rabbitmq-password}
+    ports:
+      - "${RABBITMQ_FORWARD_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  mailpit:
+    image: axllent/mailpit:v1.30.0
+    environment:
+      MP_MAX_MESSAGES: "500"
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_WEB_PORT:-8025}:8025"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/mailpit",
+          "readyz",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    <<: *app-service
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    <<: *app-service
+    command:
+      [
+        "gunicorn",
+        "notifications.wsgi:application",
+        "--bind",
+        "0.0.0.0:8000",
+        "--workers",
+        "2",
+        "--threads",
+        "4",
+        "--timeout",
+        "30",
+        "--access-logfile",
+        "-",
+      ]
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  worker:
+    <<: *app-service
+    command:
+      [
+        "celery",
+        "-A",
+        "notifications",
+        "worker",
+        "--loglevel=INFO",
+        "--hostname=worker@%h",
+      ]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A notifications inspect ping --destination worker@$$HOSTNAME --timeout=5 | grep -q pong",
+        ]
+      interval: 10s
+      timeout: 8s
+      retries: 12
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  redis_data:
