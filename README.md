@@ -125,6 +125,8 @@ Never place the returned secret in source control or application logs.
 
 ## Catalogue and recipients
 
+See the detailed [catalogue API reference](docs/api/catalogue.md).
+
 The initial tenant-scoped management resources are available under `/api/v1/`:
 
 - `GET/POST /categories/`
