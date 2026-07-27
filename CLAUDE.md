@@ -2,8 +2,8 @@
 
 ## Current state
 
-Phase 1 (foundation and operational readiness) is complete and pushed to
-`main`. The project is a Django + Django REST Framework modular monolith, not a
+Phase 1 (foundation and operational readiness) plus the initial architecture
+and tenancy slice are complete and pushed to `main`. The project is a Django + Django REST Framework modular monolith, not a
 microservice system. The Django project package is named `notifications`.
 
 The repository layout is deliberately flat:
@@ -56,6 +56,9 @@ second nested `notifications/notifications/` package.
    Django/production checks, migration drift, OpenAPI validation, real
    PostgreSQL/Redis/RabbitMQ checks, Celery task execution, Docker build, and
    Gunicorn liveness.
+6. Architecture decision records and initial tenancy boundary: businesses,
+   hashed API keys, scopes, expiry, revocation, tenant context, and scoped
+   API-key management endpoints.
 
 The first CI run for this workflow passed:
 <https://github.com/AdeelMalik22/notifications/actions/runs/29990927486>.
@@ -119,11 +122,8 @@ make smoke
 The detailed roadmap is in `plan.md`. Build the next slices in this order,
 with migrations, tests, documentation, focused commits, and pushes for each.
 
-1. **Architecture decisions and tenancy**
-   - Add short ADRs for SMS provider, preference defaults, retry/idempotency
-     windows, retention, and encrypted provider credentials.
-   - Create `apps/tenancy`: `Business`, tenant API keys, scopes, rotation,
-     revocation, and tenant context/permissions.
+1. **Complete architecture decisions and tenancy**
+   - Add API-key rotation and audit events for sensitive key operations.
 2. **Notification catalogue and recipients**
    - Add categories, event types, versioned channel templates, safe template
      variable validation/rendering, recipients, and preferences.

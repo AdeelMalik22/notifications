@@ -80,3 +80,45 @@ services and boots the production container image.
 
 Celery task results are disabled. Delivery history will be stored in PostgreSQL,
 and Redis must never become the source of truth for notification state.
+
+## Tenant API keys
+
+Tenant API keys are bearer credentials in the form
+`nos_<prefix>.<secret>`. Only the prefix and a keyed digest are stored. The
+secret is returned only when the key is created.
+
+The tenancy management endpoints are available under `/api/v1/`:
+
+- `GET /api/v1/api-keys/` lists keys for the authenticated tenant and requires
+  `api_keys:read`.
+- `POST /api/v1/api-keys/` creates a key and requires `api_keys:write`.
+- `POST /api/v1/api-keys/{id}/revoke/` revokes a key and requires
+  `api_keys:write`.
+
+Use the key with the standard bearer header:
+
+```http
+Authorization: Bearer nos_<prefix>.<secret>
+```
+
+For local development, create the initial tenant and key from the Django shell:
+
+```bash
+uv run python manage.py shell
+```
+
+```python
+from apps.tenancy.models import APIKey
+from apps.tenancy.services import create_api_key, create_business
+
+business = create_business("Example business")
+key, secret = create_api_key(
+    business,
+    "local development",
+    [APIKey.Scope.API_KEYS_READ, APIKey.Scope.API_KEYS_WRITE,
+     APIKey.Scope.NOTIFICATIONS_WRITE],
+)
+print(secret)
+```
+
+Never place the returned secret in source control or application logs.
