@@ -59,6 +59,9 @@ second nested `notifications/notifications/` package.
 6. Architecture decision records and initial tenancy boundary: businesses,
    hashed API keys, scopes, expiry, revocation, tenant context, and scoped
    API-key management endpoints.
+7. Initial notification catalogue and recipient boundary: categories, event
+   types, channel templates and versions, recipients, preferences, tenant
+   scoping, and mandatory-category validation.
 
 The first CI run for this workflow passed:
 <https://github.com/AdeelMalik22/notifications/actions/runs/29990927486>.
@@ -124,10 +127,9 @@ with migrations, tests, documentation, focused commits, and pushes for each.
 
 1. **Complete architecture decisions and tenancy**
    - Add API-key rotation and audit events for sensitive key operations.
-2. **Notification catalogue and recipients**
-   - Add categories, event types, versioned channel templates, safe template
-     variable validation/rendering, recipients, and preferences.
-   - Enforce tenant scoping and the mandatory-versus-optional category policy.
+2. **Complete notification catalogue and recipients**
+   - Add template publishing/preview, safe restricted rendering, and full
+     update/delete lifecycle actions.
 3. **Trigger and durable delivery pipeline**
    - Implement `POST /api/v1/notifications` with required idempotency keys.
    - Store notification, delivery snapshots, and outbox rows in one database

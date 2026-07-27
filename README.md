@@ -122,3 +122,22 @@ print(secret)
 ```
 
 Never place the returned secret in source control or application logs.
+
+## Catalogue and recipients
+
+The initial tenant-scoped management resources are available under `/api/v1/`:
+
+- `GET/POST /categories/`
+- `GET/POST /event-types/`
+- `GET/POST /templates/`
+- `GET/POST /template-versions/`
+- `GET/POST /recipients/`
+- `GET/POST /preferences/`
+
+All records are associated with the authenticated API key's tenant; callers
+cannot provide or override `business_id`. Categories support transactional,
+marketing, and mandatory policies. Marketing preferences default to explicit
+opt-in at evaluation time, while mandatory categories cannot be disabled.
+Published template versions must declare exactly the variables defined by
+their event type. Template rendering, preview, and update/delete actions will
+be added with the notification trigger pipeline.

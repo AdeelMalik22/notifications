@@ -4,7 +4,8 @@
 - **Backend:** Django + Django REST Framework (DRF)
 - **Architecture:** Modular monolith with Celery background workers
 - **Status:** Phase 1 complete; architecture decisions and initial tenancy
-  implementation complete; catalogue work next
+  implementation complete; initial catalogue and recipient foundation
+  complete; trigger pipeline next
 - **Last updated:** 2026-07-23
 
 ## 1. Outcome
