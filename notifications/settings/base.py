@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.delivery",
     "apps.health",
+    "apps.tenancy",
 ]
 
 MIDDLEWARE = [
