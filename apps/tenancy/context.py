@@ -16,4 +16,3 @@ class TenantContext:
 
     def has_scope(self, scope: str) -> bool:
         return scope in self.api_key.scopes
-

@@ -18,4 +18,3 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed("Invalid or inactive API key")
         request.tenant_context = TenantContext(business=key.business, api_key=key)
         return key, key.business
-

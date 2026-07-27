@@ -15,4 +15,3 @@ class APIKeyAdmin(admin.ModelAdmin):
     list_filter = ["revoked_at"]
     search_fields = ["name", "prefix", "business__name"]
     readonly_fields = ["secret_digest"]
-

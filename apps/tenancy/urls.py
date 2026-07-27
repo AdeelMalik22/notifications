@@ -8,4 +8,3 @@ urlpatterns = [
     path("api-keys/", APIKeyListCreateView.as_view(), name="api-keys"),
     path("api-keys/<uuid:key_id>/revoke/", APIKeyRevokeView.as_view(), name="api-key-revoke"),
 ]
-
