@@ -1,6 +1,7 @@
 """Explicit request/task tenant context types."""
 
 from dataclasses import dataclass
+from uuid import UUID
 
 from apps.tenancy.models import APIKey, Business
 
@@ -11,7 +12,7 @@ class TenantContext:
     api_key: APIKey
 
     @property
-    def business_id(self):
+    def business_id(self) -> UUID:
         return self.business.pk
 
     def has_scope(self, scope: str) -> bool:
