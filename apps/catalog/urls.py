@@ -1,8 +1,11 @@
 from django.urls import path
 
 from apps.catalog.views import (
+    CategoryDetailView,
     CategoryView,
+    EventTypeDetailView,
     EventTypeView,
+    TemplateDetailView,
     TemplateVersionPreviewView,
     TemplateVersionPublishView,
     TemplateVersionView,
@@ -11,8 +14,11 @@ from apps.catalog.views import (
 
 urlpatterns = [
     path("categories/", CategoryView.as_view(), name="categories"),
+    path("categories/<uuid:pk>/", CategoryDetailView.as_view(), name="category-detail"),
     path("event-types/", EventTypeView.as_view(), name="event-types"),
+    path("event-types/<uuid:pk>/", EventTypeDetailView.as_view(), name="event-type-detail"),
     path("templates/", TemplateView.as_view(), name="templates"),
+    path("templates/<uuid:pk>/", TemplateDetailView.as_view(), name="template-detail"),
     path("template-versions/", TemplateVersionView.as_view(), name="template-versions"),
     path(
         "template-versions/<uuid:version_id>/publish/",
