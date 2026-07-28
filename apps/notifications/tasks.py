@@ -5,8 +5,11 @@ from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 
+from apps.delivery.models import ProviderConfiguration
 from apps.delivery.providers.base import SMSMessage
 from apps.delivery.providers.fake_sms import FakeSMSProvider
+from apps.delivery.providers.twilio_sms import TwilioSMSProvider
+from apps.delivery.services import load_provider_credentials
 from apps.notifications.models import Delivery, DeliveryAttempt, OutboxEvent
 from apps.notifications.services import refresh_notification_status
 
@@ -59,9 +62,21 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
             send_mail(snapshot.get("subject", "Notification"), body, None, [recipient.email])
             provider_id = "smtp-accepted"
         elif channel == "sms":
-            result = FakeSMSProvider().send(
-                SMSMessage(recipient.phone_number, body, str(delivery.id))
+            provider_configuration = ProviderConfiguration.objects.get(
+                business_id=business_id, channel="sms", is_active=True
             )
+            if provider_configuration.provider_name == "twilio":
+                credentials = load_provider_credentials(provider_configuration)
+                provider = TwilioSMSProvider(
+                    account_sid=credentials["account_sid"],
+                    auth_token=credentials["auth_token"],
+                    from_number=credentials["from_number"],
+                    base_url=credentials.get("base_url", "https://api.twilio.com/2010-04-01"),
+                    timeout=float(credentials.get("timeout", "5.0")),
+                )
+            else:
+                provider = FakeSMSProvider()
+            result = provider.send(SMSMessage(recipient.phone_number, body, str(delivery.id)))
             provider_id = result.provider_message_id
         else:
             raise ValueError("Unsupported delivery channel.")

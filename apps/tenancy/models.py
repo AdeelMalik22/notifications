@@ -31,6 +31,8 @@ class APIKey(models.Model):
         NOTIFICATIONS_WRITE = "notifications:write", "Create notifications"
         CATALOG_READ = "catalog:read", "Read catalogue"
         CATALOG_WRITE = "catalog:write", "Manage catalogue"
+        PROVIDERS_READ = "providers:read", "Read providers"
+        PROVIDERS_WRITE = "providers:write", "Manage providers"
 
     id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="api_keys")
