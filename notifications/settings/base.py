@@ -7,6 +7,24 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 INSECURE_SECRET_KEY = "insecure-local-development-key"
 
 
+def load_local_dotenv() -> None:
+    """Load simple local key/value settings for host-based development only."""
+    if not os.getenv("DJANGO_SETTINGS_MODULE", "").endswith(".local"):
+        return
+    dotenv_path = BASE_DIR / ".env"
+    if not dotenv_path.exists():
+        return
+    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        os.environ.setdefault(name.strip(), value.strip().strip('"').strip("'"))
+
+
+load_local_dotenv()
+
+
 def env_list(name: str, default: str = "") -> list[str]:
     """Return a comma-separated environment value as a clean list."""
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
