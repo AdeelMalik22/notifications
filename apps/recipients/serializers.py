@@ -21,24 +21,19 @@ class PreferenceSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         business = self.context["business"]
-        if (
-            attrs["recipient"].business_id != business.id
-            or attrs["category"].business_id != business.id
-        ):
+        recipient = attrs.get("recipient", getattr(self.instance, "recipient", None))
+        category = attrs.get("category", getattr(self.instance, "category", None))
+        channel = attrs.get("channel", getattr(self.instance, "channel", None))
+        enabled = attrs.get("enabled", getattr(self.instance, "enabled", None))
+        if recipient.business_id != business.id or category.business_id != business.id:
             raise serializers.ValidationError(
                 "Recipient and category must belong to the authenticated tenant."
             )
-        if (
-            attrs["category"].policy == NotificationCategory.Policy.MANDATORY
-            and not attrs["enabled"]
-        ):
+        if category.policy == NotificationCategory.Policy.MANDATORY and not enabled:
             raise serializers.ValidationError("Mandatory categories cannot be disabled.")
-        if (
-            attrs["category"].policy == NotificationCategory.Policy.MARKETING
-            and attrs["enabled"] is not True
-        ):
+        if category.policy == NotificationCategory.Policy.MARKETING and enabled is not True:
             return attrs
-        if attrs["channel"] not in Channel.values:
+        if channel not in Channel.values:
             raise serializers.ValidationError({"channel": "Unsupported channel."})
         return attrs
 

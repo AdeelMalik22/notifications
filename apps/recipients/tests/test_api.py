@@ -59,3 +59,20 @@ def test_mandatory_category_cannot_be_disabled() -> None:
     )
 
     assert response.status_code == 400
+
+
+def test_recipient_lifecycle_is_tenant_scoped() -> None:
+    business = create_business("Acme")
+    _, secret = create_api_key(business, "recipients", [APIKey.Scope.CATALOG_WRITE])
+    recipient = Recipient.objects.create(business=business, external_id="user-1")
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {secret}")
+
+    response = client.patch(
+        f"/api/v1/recipients/{recipient.id}/", {"email": "new@example.test"}, format="json"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "new@example.test"
+    assert client.delete(f"/api/v1/recipients/{recipient.id}/").status_code == 204
+    assert not Recipient.objects.filter(id=recipient.id).exists()
