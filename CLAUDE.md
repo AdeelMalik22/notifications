@@ -149,8 +149,9 @@ outcome handling, queue fairness/backlog controls, full Django Admin coverage,
 and retention cleanup/anonymization (`run_retention`).
 
 1. **Production operations**
-   - Add metrics and tracing context, backups, and recovery verification.
    - Add provider-specific reconciliation workers for ambiguous outcomes.
+   - Connect metrics to the production monitoring/alerting backend and run
+     scheduled backup and recovery drills.
 2. **API and acceptance testing**
    - Add integration/contract/e2e coverage, concurrency tests, and operational
      runbooks for tenant isolation, idempotency, retries, preferences, provider
