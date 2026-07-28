@@ -40,6 +40,7 @@ class Delivery(models.Model):
         PROCESSING = "processing", "Processing"
         SENT = "sent", "Sent"
         FAILED = "failed", "Failed"
+        RETRY_SCHEDULED = "retry_scheduled", "Retry scheduled"
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="deliveries")
@@ -51,6 +52,7 @@ class Delivery(models.Model):
     template_snapshot = models.JSONField(default=dict)
     preference_reason = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    next_attempt_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [

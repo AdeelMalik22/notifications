@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from celery import shared_task
 from django.core.mail import send_mail
 from django.db import transaction
@@ -29,12 +31,16 @@ def relay_outbox(limit: int = 100) -> int:
     return published
 
 
-@shared_task(ignore_result=True, name="notificationos.notifications.deliver")  # type: ignore[untyped-decorator]
-def deliver_notification(delivery_id: str, business_id: str, channel: str) -> None:
+@shared_task(
+    bind=True,
+    ignore_result=True,
+    name="notificationos.notifications.deliver",
+    max_retries=2,
+    default_retry_delay=60,
+)  # type: ignore[untyped-decorator]
+def deliver_notification(self, delivery_id: str, business_id: str, channel: str) -> None:
     delivery = Delivery.objects.get(id=delivery_id, business_id=business_id)
-    if delivery.status != "queued":
-        return
-    if delivery.status != "queued":
+    if delivery.status not in {"queued", "retry_scheduled"}:
         return
     delivery.status = "processing"
     delivery.save(update_fields=["status"])
@@ -58,7 +64,7 @@ def deliver_notification(delivery_id: str, business_id: str, channel: str) -> No
             provider_id = result.provider_message_id
         else:
             raise ValueError("Unsupported delivery channel.")
-    except Exception as error:  # provider errors become durable attempt history
+    except ValueError as error:
         DeliveryAttempt.objects.create(
             delivery=delivery,
             attempt_number=attempt_number,
@@ -68,6 +74,17 @@ def deliver_notification(delivery_id: str, business_id: str, channel: str) -> No
         delivery.status = "failed"
         delivery.save(update_fields=["status"])
         return
+    except Exception as error:  # transient provider errors are retried twice
+        DeliveryAttempt.objects.create(
+            delivery=delivery,
+            attempt_number=attempt_number,
+            status="retry_scheduled",
+            error_class=error.__class__.__name__,
+        )
+        delivery.status = "retry_scheduled"
+        delivery.next_attempt_at = timezone.now() + timedelta(seconds=60)
+        delivery.save(update_fields=["status", "next_attempt_at"])
+        raise self.retry(exc=error, countdown=60) from error
     DeliveryAttempt.objects.create(
         delivery=delivery,
         attempt_number=attempt_number,
