@@ -69,13 +69,16 @@ build.
 `make ci` runs the host-side quality gates. GitHub additionally starts real
 services and boots the production container image.
 
+When running Django directly with `notifications.settings.local`, the project
+loads `.env` automatically. Production and test settings do not load `.env`.
+
 ## Runtime responsibilities
 
 - `web`: Django/DRF under Gunicorn.
 - `migrate`: one-shot Django migration process.
 - `worker`: Celery worker using RabbitMQ.
 - `db`: PostgreSQL system of record.
-- `redis`: Django cache and future atomic rate-limit counters.
+- `redis`: Django cache and atomic tenant/recipient rate-limit counters.
 - `mailpit`: local SMTP capture.
 
 Celery task results are disabled. Delivery history will be stored in PostgreSQL,
@@ -138,6 +141,10 @@ The initial tenant-scoped management resources are available under `/api/v1/`:
 - `GET/POST /recipients/`
 - `GET/POST /preferences/`
 
+Recipients and preferences also support tenant-scoped `GET`, `PATCH`, `PUT`,
+and `DELETE` detail actions. Categories, event types, and template identities
+support the same lifecycle endpoints.
+
 Template lifecycle actions are available at:
 
 - `POST /api/v1/template-versions/{id}/publish/`
@@ -173,8 +180,16 @@ Delivery history is available through:
 - `GET /api/v1/notifications/{id}/`
 
 The outbox relay publishes opaque delivery identifiers to Celery. Workers
-reload snapshots from PostgreSQL, execute the configured local provider, and
-record delivery attempts in PostgreSQL.
+reload snapshots from PostgreSQL, execute the configured provider, and record
+delivery attempts in PostgreSQL. Local email uses Mailpit and local SMS uses
+the deterministic fake provider. Production SMS uses the Twilio-compatible
+adapter.
+
+Provider credentials are encrypted at rest with `PROVIDER_ENCRYPTION_KEY`.
+The key must be supplied through the environment before saving provider
+configuration; it must never be committed or logged. Notification admission
+limits are configured with `NOTIFICATION_TENANT_RATE_LIMIT` and
+`NOTIFICATION_RECIPIENT_RATE_LIMIT`.
 
 All records are associated with the authenticated API key's tenant; callers
 cannot provide or override `business_id`. Categories support transactional,
@@ -183,4 +198,4 @@ opt-in at evaluation time, while mandatory categories cannot be disabled.
 Published template versions must declare exactly the variables defined by
 their event type. Preview performs restricted variable substitution and never
 sends a notification. Update/delete lifecycle actions and production provider
-configuration remain planned work.
+configuration remains subject to production deployment setup.
