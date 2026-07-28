@@ -5,6 +5,7 @@ from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 
+from apps.delivery.errors import AmbiguousProviderError, PermanentProviderError
 from apps.delivery.models import ProviderConfiguration
 from apps.delivery.providers.base import SMSMessage
 from apps.delivery.providers.fake_sms import FakeSMSProvider
@@ -79,8 +80,8 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
             result = provider.send(SMSMessage(recipient.phone_number, body, str(delivery.id)))
             provider_id = result.provider_message_id
         else:
-            raise ValueError("Unsupported delivery channel.")
-    except ValueError as error:
+            raise PermanentProviderError("Unsupported delivery channel.")
+    except (ValueError, PermanentProviderError) as error:
         DeliveryAttempt.objects.create(
             delivery=delivery,
             attempt_number=attempt_number,
@@ -92,6 +93,29 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
         refresh_notification_status(delivery.notification)
         return
     except Exception as error:  # transient provider errors are retried twice
+        if isinstance(error, AmbiguousProviderError):
+            DeliveryAttempt.objects.create(
+                delivery=delivery,
+                attempt_number=attempt_number,
+                status="unknown",
+                error_class=error.__class__.__name__,
+            )
+            delivery.status = "unknown"
+            delivery.save(update_fields=["status"])
+            refresh_notification_status(delivery.notification)
+            return
+        if self.request.retries >= 2:
+            DeliveryAttempt.objects.create(
+                delivery=delivery,
+                attempt_number=attempt_number,
+                status="dead_lettered",
+                error_class=error.__class__.__name__,
+            )
+            delivery.status = "failed"
+            delivery.dead_lettered_at = timezone.now()
+            delivery.save(update_fields=["status", "dead_lettered_at"])
+            refresh_notification_status(delivery.notification)
+            return
         DeliveryAttempt.objects.create(
             delivery=delivery,
             attempt_number=attempt_number,
@@ -102,6 +126,7 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
         delivery.next_attempt_at = timezone.now() + timedelta(seconds=60)
         delivery.save(update_fields=["status", "next_attempt_at"])
         raise self.retry(exc=error, countdown=60) from error
+
     DeliveryAttempt.objects.create(
         delivery=delivery,
         attempt_number=attempt_number,
@@ -111,3 +136,9 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
     delivery.status = "sent"
     delivery.save(update_fields=["status"])
     refresh_notification_status(delivery.notification)
+
+
+@shared_task(ignore_result=True, name="notificationos.notifications.reconcile_unknown")  # type: ignore[untyped-decorator]
+def reconcile_unknown_deliveries() -> int:
+    """Leave ambiguous outcomes visible for provider-specific reconciliation."""
+    return Delivery.objects.filter(status="unknown").count()

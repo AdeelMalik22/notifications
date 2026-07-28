@@ -13,6 +13,7 @@ class Notification(models.Model):
         SENT = "sent", "Sent"
         PARTIALLY_SENT = "partially_sent", "Partially sent"
         FAILED = "failed", "Failed"
+        UNKNOWN = "unknown", "Unknown"
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="notifications")
@@ -56,6 +57,7 @@ class Delivery(models.Model):
     preference_reason = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     next_attempt_at = models.DateTimeField(null=True, blank=True)
+    dead_lettered_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
