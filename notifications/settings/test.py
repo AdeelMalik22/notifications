@@ -5,6 +5,8 @@ from notifications.settings.base import *
 
 DEBUG = False
 SECRET_KEY = "test-secret-key"
+CONTACT_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+CONTACT_LOOKUP_KEY = "test-contact-lookup-key"
 
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",

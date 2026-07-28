@@ -5,9 +5,9 @@ from apps.recipients.models import Preference, Recipient
 
 @admin.register(Recipient)
 class RecipientAdmin(admin.ModelAdmin):
-    list_display = ["external_id", "business", "email", "phone_number", "is_active"]
+    list_display = ["external_id", "business", "is_active"]
     list_filter = ["is_active"]
-    search_fields = ["external_id", "business__name", "email"]
+    search_fields = ["external_id", "business__name", "email_lookup", "phone_lookup"]
 
 
 @admin.register(Preference)

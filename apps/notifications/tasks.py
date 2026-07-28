@@ -15,6 +15,7 @@ from apps.delivery.services import load_provider_credentials
 from apps.notifications.models import Delivery, DeliveryAttempt, Notification, OutboxEvent
 from apps.notifications.services import refresh_notification_status
 from apps.recipients.models import Recipient
+from apps.recipients.privacy import decrypt_contact
 
 
 @shared_task(ignore_result=True, name="notificationos.notifications.relay_outbox")  # type: ignore[untyped-decorator]
@@ -76,7 +77,12 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
                 "{{ " + name + " }}", str(value)
             )
         if channel == "email":
-            send_mail(snapshot.get("subject", "Notification"), body, None, [recipient.email])
+            send_mail(
+                snapshot.get("subject", "Notification"),
+                body,
+                None,
+                [decrypt_contact(recipient.email_ciphertext)],
+            )
             provider_id = "smtp-accepted"
         elif channel == "sms":
             provider_configuration = ProviderConfiguration.objects.get(
@@ -93,7 +99,9 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
                 )
             else:
                 provider = FakeSMSProvider()
-            result = provider.send(SMSMessage(recipient.phone_number, body, str(delivery.id)))
+            result = provider.send(
+                SMSMessage(decrypt_contact(recipient.phone_ciphertext), body, str(delivery.id))
+            )
             provider_id = result.provider_message_id
         else:
             raise PermanentProviderError("Unsupported delivery channel.")
@@ -176,6 +184,12 @@ def run_retention() -> dict[str, int]:
         .distinct()
     )
     recipient_count = Recipient.objects.filter(id__in=recipient_ids).update(
-        email="", phone_number="", is_active=False
+        email="",
+        phone_number="",
+        email_ciphertext=b"",
+        phone_ciphertext=b"",
+        email_lookup="",
+        phone_lookup="",
+        is_active=False,
     )
     return {"notifications_cleared": content_count, "recipients_anonymized": recipient_count}

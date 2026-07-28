@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 
 from apps.catalog.models import Channel, NotificationCategory
+from apps.recipients.privacy import contact_lookup, encrypt_contact
 from apps.tenancy.models import Business
 
 
@@ -12,6 +13,10 @@ class Recipient(models.Model):
     external_id = models.CharField(max_length=200)
     email = models.EmailField(blank=True)
     phone_number = models.CharField(max_length=32, blank=True)
+    email_ciphertext = models.BinaryField(blank=True, default=bytes)
+    phone_ciphertext = models.BinaryField(blank=True, default=bytes)
+    email_lookup = models.CharField(max_length=64, blank=True, editable=False)
+    phone_lookup = models.CharField(max_length=64, blank=True, editable=False)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -23,6 +28,21 @@ class Recipient(models.Model):
 
     def __str__(self) -> str:
         return self.external_id
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email_ciphertext = encrypt_contact(self.email)
+            self.email_lookup = contact_lookup(self.email)
+            self.email = ""
+        elif not self.email_ciphertext:
+            self.email_lookup = ""
+        if self.phone_number:
+            self.phone_ciphertext = encrypt_contact(self.phone_number)
+            self.phone_lookup = contact_lookup(self.phone_number)
+            self.phone_number = ""
+        elif not self.phone_ciphertext:
+            self.phone_lookup = ""
+        return super().save(*args, **kwargs)
 
 
 class Preference(models.Model):

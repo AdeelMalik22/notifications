@@ -146,7 +146,8 @@ with migrations, tests, documentation, focused commits, and pushes for each.
 Completed slices now include tenant provider configuration and encrypted worker
 credentials, provider failure classification with dead-letter and ambiguous
 outcome handling, queue fairness/backlog controls, full Django Admin coverage,
-and retention cleanup/anonymization (`run_retention`).
+retention cleanup/anonymization (`run_retention`), and encrypted recipient
+contact storage with keyed lookup protection.
 
 1. **Production operations**
    - Add provider-specific reconciliation workers for ambiguous outcomes.

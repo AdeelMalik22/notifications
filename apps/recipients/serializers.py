@@ -5,9 +5,20 @@ from apps.recipients.models import Preference, Recipient
 
 
 class RecipientSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = Recipient
         fields = ["id", "external_id", "email", "phone_number", "is_active"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from apps.recipients.privacy import decrypt_contact
+
+        data["email"] = decrypt_contact(instance.email_ciphertext)
+        data["phone_number"] = decrypt_contact(instance.phone_ciphertext)
+        return data
 
     def create(self, validated_data):
         return Recipient.objects.create(business=self.context["business"], **validated_data)

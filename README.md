@@ -242,6 +242,13 @@ configuration; it must never be committed or logged. Notification admission
 limits are configured with `NOTIFICATION_TENANT_RATE_LIMIT` and
 `NOTIFICATION_RECIPIENT_RATE_LIMIT`.
 
+Recipient email addresses and phone numbers are encrypted at rest with the
+separate `CONTACT_ENCRYPTION_KEY`. Normalized keyed HMAC digests using
+`CONTACT_LOOKUP_KEY` support exact-match lookup without storing searchable
+plaintext contact data. Keep both keys outside PostgreSQL and rotate them with
+a controlled decrypt-and-reencrypt migration; losing either key makes the
+corresponding contact data unrecoverable.
+
 All records are associated with the authenticated API key's tenant; callers
 cannot provide or override `business_id`. Categories support transactional,
 marketing, and mandatory policies. Marketing preferences default to explicit
