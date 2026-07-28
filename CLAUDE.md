@@ -143,19 +143,18 @@ continuing feature work. Do not infer success from local checks alone.
 The detailed roadmap is in `plan.md`. Build the next slices in this order,
 with migrations, tests, documentation, focused commits, and pushes for each.
 
-1. **Provider configuration and production delivery**
-   - Wire the SMTP and Twilio-compatible adapters to tenant configuration.
-   - Add provider error classification, dead-letter handling, and ambiguous
-     outcome reconciliation.
-2. **Safety and operations**
-   - Add queue fairness, retention/deletion/anonymization jobs, metrics,
-     tracing context, backups, and recovery verification.
-3. **API and acceptance testing**
-   - Add internal Django Admin support for catalogue, recipients, delivery,
-     and audit records.
-   - Add integration/contract/e2e tests for tenant isolation, concurrency,
-     idempotency, retries, preference handling, provider failures, and PII-safe
-     logs.
+Completed slices now include tenant provider configuration and encrypted worker
+credentials, provider failure classification with dead-letter and ambiguous
+outcome handling, queue fairness/backlog controls, full Django Admin coverage,
+and retention cleanup/anonymization (`run_retention`).
+
+1. **Production operations**
+   - Add metrics and tracing context, backups, and recovery verification.
+   - Add provider-specific reconciliation workers for ambiguous outcomes.
+2. **API and acceptance testing**
+   - Add integration/contract/e2e coverage, concurrency tests, and operational
+     runbooks for tenant isolation, idempotency, retries, preferences, provider
+     failures, and PII-safe logging.
 
 Before changing scope, compare the request against `plan.md` and
 `NotificationOS_PRD_v2.md`; document any material product decision in an ADR.
