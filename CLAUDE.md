@@ -86,6 +86,15 @@ make up
 make smoke
 ```
 
+## CI workflow rule
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` is authoritative.
+Before reporting a push as successful, run the equivalent local gates and
+verify the latest `main` workflow has completed successfully with `gh run
+list --workflow ci.yml --branch main`. If a run fails, inspect it with `gh run
+view <run-id> --log-failed`, fix the underlying issue, and push a repair before
+continuing feature work. Do not infer success from local checks alone.
+
 ## Git workflow
 
 - Make focused, reviewable commits. Do not manufacture empty or artificial
