@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
-from apps.catalog.models import NotificationCategory
+from apps.catalog.models import EventType, NotificationCategory, Template, TemplateVersion
 from apps.tenancy.models import APIKey
 from apps.tenancy.services import create_api_key, create_business
 
@@ -41,3 +41,35 @@ def test_category_creation_does_not_accept_business_from_payload() -> None:
 
     assert response.status_code == 201
     assert response.json()["policy"] == NotificationCategory.Policy.MANDATORY
+
+
+def test_template_version_can_be_published_and_previewed() -> None:
+    business = create_business("Acme")
+    category = NotificationCategory.objects.create(business=business, key="orders", name="Orders")
+    event = EventType.objects.create(
+        business=business,
+        key="order.shipped",
+        name="Order shipped",
+        category=category,
+        variable_schema=["customer_name"],
+    )
+    template = Template.objects.create(business=business, event_type=event, channel="email")
+    version = TemplateVersion.objects.create(
+        template=template,
+        version=1,
+        body="Hello {{ customer_name }}",
+        variables=["customer_name"],
+    )
+    client = auth_client(business)
+
+    response = client.post(f"/api/v1/template-versions/{version.id}/publish/")
+    assert response.status_code == 200
+    assert response.json()["status"] == "published"
+
+    response = client.post(
+        f"/api/v1/template-versions/{version.id}/preview/",
+        {"variables": {"customer_name": "Ada"}},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["body"] == "Hello Ada"

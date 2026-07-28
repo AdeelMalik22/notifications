@@ -69,3 +69,7 @@ class TemplateVersionSerializer(serializers.ModelSerializer):
                     {"variables": "Variables must match the event schema exactly."}
                 )
         return attrs
+
+
+class TemplatePreviewSerializer(serializers.Serializer):
+    variables = serializers.DictField(child=serializers.CharField(allow_blank=True))
