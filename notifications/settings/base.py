@@ -163,6 +163,7 @@ SMS_PROVIDER_BACKEND = os.getenv(
     "SMS_PROVIDER_BACKEND",
     "apps.delivery.providers.fake_sms.FakeSMSProvider",
 )
+PROVIDER_ENCRYPTION_KEY = os.getenv("PROVIDER_ENCRYPTION_KEY", "")
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "amqp://guest:guest@localhost:5672//")
 CELERY_RESULT_BACKEND = None
