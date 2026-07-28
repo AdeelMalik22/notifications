@@ -92,6 +92,8 @@ The tenancy management endpoints are available under `/api/v1/`:
 - `GET /api/v1/api-keys/` lists keys for the authenticated tenant and requires
   `api_keys:read`.
 - `POST /api/v1/api-keys/` creates a key and requires `api_keys:write`.
+- `POST /api/v1/api-keys/{id}/rotate/` replaces a usable key and returns the
+  replacement secret once.
 - `POST /api/v1/api-keys/{id}/revoke/` revokes a key and requires
   `api_keys:write`.
 
@@ -136,10 +138,49 @@ The initial tenant-scoped management resources are available under `/api/v1/`:
 - `GET/POST /recipients/`
 - `GET/POST /preferences/`
 
+Template lifecycle actions are available at:
+
+- `POST /api/v1/template-versions/{id}/publish/`
+- `POST /api/v1/template-versions/{id}/preview/`
+
+## Triggering notifications
+
+Create an asynchronous notification with a required idempotency key:
+
+```http
+POST /api/v1/notifications/
+Authorization: Bearer nos_<prefix>.<secret>
+Idempotency-Key: order-shipped-123
+Content-Type: application/json
+```
+
+```json
+{
+  "event_type": "order.shipped",
+  "recipient_id": "<recipient-id>",
+  "variables": {"customer_name": "Ada"}
+}
+```
+
+The API returns `202 Accepted` after the notification, delivery snapshot, and
+transactional outbox record commit. Repeating the same key and canonical
+payload returns the original notification; reusing it with different data
+returns `409 Conflict`.
+
+Delivery history is available through:
+
+- `GET /api/v1/notifications/history/`
+- `GET /api/v1/notifications/{id}/`
+
+The outbox relay publishes opaque delivery identifiers to Celery. Workers
+reload snapshots from PostgreSQL, execute the configured local provider, and
+record delivery attempts in PostgreSQL.
+
 All records are associated with the authenticated API key's tenant; callers
 cannot provide or override `business_id`. Categories support transactional,
 marketing, and mandatory policies. Marketing preferences default to explicit
 opt-in at evaluation time, while mandatory categories cannot be disabled.
 Published template versions must declare exactly the variables defined by
-their event type. Template rendering, preview, and update/delete actions will
-be added with the notification trigger pipeline.
+their event type. Preview performs restricted variable substitution and never
+sends a notification. Update/delete lifecycle actions and production provider
+configuration remain planned work.
