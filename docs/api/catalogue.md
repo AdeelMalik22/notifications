@@ -52,8 +52,8 @@ identities. Channels are `email` and `sms`:
 }
 ```
 
-`GET /template-versions/` and `POST /template-versions/` manage immutable
-version records:
+`GET /template-versions/` and `POST /template-versions/` manage version
+records. A draft becomes immutable when published:
 
 ```json
 {
@@ -67,12 +67,14 @@ version records:
 ```
 
 Published versions must declare exactly the variables in the event type's
-schema. Restricted rendering and preview endpoints will be added with the
-notification trigger pipeline.
+schema. Use `POST /template-versions/{id}/publish/` to publish a draft and
+`POST /template-versions/{id}/preview/` with a `variables` object to render a
+synthetic preview. Preview never sends a notification.
 
 ## Recipients
 
-`GET /recipients/` lists recipients. `POST /recipients/` creates one:
+`GET` and `POST /recipients/` list and create recipients. Detail endpoints also
+support `GET`, `PATCH`, `PUT`, and `DELETE`:
 
 ```json
 {
@@ -83,11 +85,12 @@ notification trigger pipeline.
 ```
 
 `external_id` is unique within a tenant. Contact encryption and keyed lookup
-hashes are required before production provider delivery is enabled.
+hashes remain production-hardening work before external provider delivery.
 
 ## Preferences
 
-`GET /preferences/` lists preferences. `POST /preferences/` creates one:
+`GET` and `POST /preferences/` list and create preferences. Detail endpoints
+also support `GET`, `PATCH`, `PUT`, and `DELETE`:
 
 ```json
 {
@@ -100,11 +103,12 @@ hashes are required before production provider delivery is enabled.
 
 Preferences are unique by tenant, recipient, category, and channel. Mandatory
 categories cannot be disabled. Marketing categories require explicit opt-in;
-transactional defaults and preference evaluation will be finalized in the
-notification trigger service.
+transactional notifications are enabled by default unless explicitly
+suppressed.
 
 ## Current scope
 
-The current foundation provides list/create endpoints. Update/delete actions,
-template publishing actions, safe rendering/preview, audit records, and the
-notification trigger endpoint are separate follow-up work.
+Catalogue and recipient lifecycle actions, template publishing/preview,
+tenant-scoped audit records for sensitive key operations, and the notification
+trigger endpoint are implemented. Provider configuration, contact protection,
+and operational hardening remain production-readiness work.
