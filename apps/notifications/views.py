@@ -40,6 +40,8 @@ class NotificationTriggerView(APIView):
             notification, duplicate = trigger_notification(
                 request.tenant_context.business, key, payload
             )
+        except OverflowError as exc:
+            return Response({"detail": str(exc)}, status=429)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         return Response(

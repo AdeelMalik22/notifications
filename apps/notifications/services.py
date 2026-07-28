@@ -1,6 +1,7 @@
 import hashlib
 import json
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 
 from apps.catalog.models import TemplateVersion
@@ -38,6 +39,11 @@ def refresh_notification_status(notification: Notification) -> Notification:
 def trigger_notification(
     business: Business, idempotency_key: str, payload: dict
 ) -> tuple[Notification, bool]:
+    if (
+        OutboxEvent.objects.filter(business=business, published_at__isnull=True).count()
+        >= settings.NOTIFICATION_MAX_OUTBOX_PER_TENANT
+    ):
+        raise OverflowError("Tenant delivery backlog limit exceeded.")
     fingerprint = _fingerprint(payload)
     try:
         with transaction.atomic():

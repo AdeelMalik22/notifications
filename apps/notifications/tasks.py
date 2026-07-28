@@ -18,9 +18,23 @@ from apps.notifications.services import refresh_notification_status
 @shared_task(ignore_result=True, name="notificationos.notifications.relay_outbox")  # type: ignore[untyped-decorator]
 def relay_outbox(limit: int = 100) -> int:
     published = 0
-    for event in OutboxEvent.objects.filter(published_at__isnull=True).select_related("delivery")[
-        :limit
-    ]:
+    tenants = list(
+        OutboxEvent.objects.filter(published_at__isnull=True)
+        .values_list("business_id", flat=True)
+        .distinct()
+    )
+    index = 0
+    while published < limit and tenants:
+        business_id = tenants[index % len(tenants)]
+        event = (
+            OutboxEvent.objects.filter(business_id=business_id, published_at__isnull=True)
+            .select_related("delivery")
+            .first()
+        )
+        index += 1
+        if event is None:
+            tenants.remove(business_id)
+            continue
         with transaction.atomic():
             claimed = OutboxEvent.objects.filter(id=event.id, published_at__isnull=True).update(
                 published_at=timezone.now()

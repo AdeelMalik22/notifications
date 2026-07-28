@@ -105,3 +105,21 @@ def test_notification_status_aggregates_delivery_outcomes() -> None:
 
     notification.refresh_from_db()
     assert notification.status == "partially_sent"
+
+
+def test_trigger_rejects_when_tenant_backlog_is_full(settings) -> None:
+    settings.NOTIFICATION_MAX_OUTBOX_PER_TENANT = 0
+    business = create_business("Acme")
+    recipient = Recipient.objects.create(business=business, external_id="user-1")
+    _, secret = create_api_key(business, "sender", [APIKey.Scope.NOTIFICATIONS_WRITE])
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {secret}")
+
+    response = client.post(
+        "/api/v1/notifications/",
+        {"event_type": "order.shipped", "recipient_id": str(recipient.id), "variables": {}},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY="backlog-1",
+    )
+
+    assert response.status_code == 429
