@@ -1,8 +1,11 @@
 from celery import shared_task
+from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 
-from apps.notifications.models import Delivery, OutboxEvent
+from apps.delivery.providers.base import SMSMessage
+from apps.delivery.providers.fake_sms import FakeSMSProvider
+from apps.notifications.models import Delivery, DeliveryAttempt, OutboxEvent
 
 
 @shared_task(ignore_result=True, name="notificationos.notifications.relay_outbox")  # type: ignore[untyped-decorator]
@@ -31,6 +34,45 @@ def deliver_notification(delivery_id: str, business_id: str, channel: str) -> No
     delivery = Delivery.objects.get(id=delivery_id, business_id=business_id)
     if delivery.status != "queued":
         return
-    # Provider execution is intentionally a later channel-specific slice.
+    if delivery.status != "queued":
+        return
     delivery.status = "processing"
+    delivery.save(update_fields=["status"])
+    attempt_number = delivery.attempts.count() + 1
+    try:
+        recipient = delivery.notification.recipient
+        snapshot = delivery.template_snapshot
+        variables = delivery.notification.payload.get("variables", {})
+        body = snapshot["body"]
+        for name, value in variables.items():
+            body = body.replace("{{" + name + "}}", str(value)).replace(
+                "{{ " + name + " }}", str(value)
+            )
+        if channel == "email":
+            send_mail(snapshot.get("subject", "Notification"), body, None, [recipient.email])
+            provider_id = "smtp-accepted"
+        elif channel == "sms":
+            result = FakeSMSProvider().send(
+                SMSMessage(recipient.phone_number, body, str(delivery.id))
+            )
+            provider_id = result.provider_message_id
+        else:
+            raise ValueError("Unsupported delivery channel.")
+    except Exception as error:  # provider errors become durable attempt history
+        DeliveryAttempt.objects.create(
+            delivery=delivery,
+            attempt_number=attempt_number,
+            status="failed",
+            error_class=error.__class__.__name__,
+        )
+        delivery.status = "failed"
+        delivery.save(update_fields=["status"])
+        return
+    DeliveryAttempt.objects.create(
+        delivery=delivery,
+        attempt_number=attempt_number,
+        status="sent",
+        provider_message_id=provider_id,
+    )
+    delivery.status = "sent"
     delivery.save(update_fields=["status"])

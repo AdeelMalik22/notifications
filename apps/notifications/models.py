@@ -36,6 +36,10 @@ class Delivery(models.Model):
     class Status(models.TextChoices):
         SUPPRESSED = "suppressed", "Suppressed"
         PENDING = "pending", "Pending"
+        QUEUED = "queued", "Queued"
+        PROCESSING = "processing", "Processing"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="deliveries")
@@ -58,6 +62,26 @@ class Delivery(models.Model):
 
     def __str__(self) -> str:
         return str(self.id)
+
+
+class DeliveryAttempt(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    delivery = models.ForeignKey(Delivery, on_delete=models.PROTECT, related_name="attempts")
+    attempt_number = models.PositiveSmallIntegerField()
+    status = models.CharField(max_length=20)
+    provider_message_id = models.CharField(max_length=200, blank=True)
+    error_class = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["delivery", "attempt_number"], name="delivery_attempt_number"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.delivery_id}:{self.attempt_number}"
 
 
 class OutboxEvent(models.Model):
