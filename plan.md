@@ -3,10 +3,9 @@
 - **Source:** `NotificationOS_PRD_v2.md`
 - **Backend:** Django + Django REST Framework (DRF)
 - **Architecture:** Modular monolith with Celery background workers
-- **Status:** Phase 1 complete; architecture decisions and initial tenancy
-  implementation complete; initial catalogue and recipient foundation
-  complete; trigger pipeline next
-- **Last updated:** 2026-07-23
+- **Status:** MVP implementation complete through operations, Admin, and
+  integration-test acceptance slices; pilot-readiness hardening remains
+- **Last updated:** 2026-07-28
 
 ## 1. Outcome
 

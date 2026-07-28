@@ -70,6 +70,21 @@ build.
 `make ci` runs the host-side quality gates. GitHub additionally starts real
 services and boots the production container image.
 
+The test suite includes unit tests for policies, serializers, providers, and
+tasks; API contract tests for authentication, CRUD, idempotency, and tenant
+scoping; Admin registration safety tests; and integration tests covering
+tenant-isolated history plus the trigger-to-outbox-to-worker delivery path.
+Run the full local suite with:
+
+```bash
+uv run pytest --cov=apps --cov=notifications --cov-fail-under=85
+```
+
+GitHub Actions additionally validates migrations against PostgreSQL, readiness
+against PostgreSQL and Redis, OpenAPI generation, and a live Celery task through
+RabbitMQ. The production-like broker/database checks complement the fast local
+SQLite test suite.
+
 ## Operations and recovery
 
 Every request carries an `X-Request-ID`, and structured JSON logs include that
