@@ -25,3 +25,15 @@ def test_twilio_provider_requires_credentials() -> None:
         TwilioSMSProvider("", "secret", "+15555550000").send(
             SMSMessage("+1", "Hello", "delivery-1")
         )
+
+
+def test_twilio_provider_rejects_missing_provider_id() -> None:
+    response = Mock(status=201)
+    response.read.return_value = b"{}"
+    response.__enter__ = Mock(return_value=response)
+    response.__exit__ = Mock(return_value=False)
+    with patch("apps.delivery.providers.twilio_sms.urlopen", return_value=response):
+        with pytest.raises(RuntimeError, match="message ID"):
+            TwilioSMSProvider("AC123", "secret", "+15555550000").send(
+                SMSMessage("+1", "Hello", "delivery-1")
+            )

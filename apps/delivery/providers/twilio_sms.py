@@ -1,5 +1,6 @@
 """Small Twilio-compatible SMS adapter using the provider HTTP API."""
 
+import json
 from base64 import b64encode
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -39,7 +40,7 @@ class TwilioSMSProvider:
             status = response.status
             if status < 200 or status >= 300:
                 raise RuntimeError(f"Twilio returned HTTP {status}.")
-            provider_id = response.read().decode().split('"sid":"', 1)[-1].split('"', 1)[0]
+            provider_id = json.loads(response.read().decode()).get("sid", "")
         if not provider_id:
             raise RuntimeError("Twilio response did not contain a message ID.")
         return SMSDeliveryResult(provider_message_id=provider_id, accepted_at=datetime.now(UTC))

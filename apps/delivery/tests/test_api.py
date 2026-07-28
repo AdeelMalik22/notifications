@@ -31,3 +31,27 @@ def test_provider_configuration_api_never_returns_credentials(settings) -> None:
     assert response.status_code == 201
     assert "credentials" not in response.json()
     assert ProviderConfiguration.objects.get().encrypted_credentials
+
+
+def test_provider_configuration_detail_lifecycle_and_scope(settings) -> None:
+    settings.PROVIDER_ENCRYPTION_KEY = Fernet.generate_key().decode()
+    business = create_business("Acme")
+    _, secret = create_api_key(
+        business, "provider-admin", [APIKey.Scope.PROVIDERS_READ, APIKey.Scope.PROVIDERS_WRITE]
+    )
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {secret}")
+    created = client.post(
+        "/api/v1/provider-configurations/",
+        {"channel": "sms", "provider_name": "fake", "credentials": {"token": "x"}},
+        format="json",
+    )
+    identifier = created.json()["id"]
+    assert client.get(f"/api/v1/provider-configurations/{identifier}/").status_code == 200
+    assert (
+        client.patch(
+            f"/api/v1/provider-configurations/{identifier}/", {"is_active": False}, format="json"
+        ).status_code
+        == 200
+    )
+    assert client.delete(f"/api/v1/provider-configurations/{identifier}/").status_code == 204

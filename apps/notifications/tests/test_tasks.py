@@ -4,7 +4,7 @@ import pytest
 
 from apps.catalog.models import EventType, NotificationCategory, Template, TemplateVersion
 from apps.notifications.models import Delivery, Notification, OutboxEvent
-from apps.notifications.tasks import relay_outbox
+from apps.notifications.tasks import reconcile_unknown_deliveries, relay_outbox
 from apps.recipients.models import Recipient
 from apps.tenancy.services import create_business
 
@@ -45,3 +45,7 @@ def test_relay_publishes_each_outbox_event_once() -> None:
         assert relay_outbox() == 0
     send.assert_called_once_with(str(delivery.id), str(business.id), "email")
     assert OutboxEvent.objects.get().published_at is not None
+
+
+def test_reconcile_unknown_deliveries_counts_ambiguous_work() -> None:
+    assert reconcile_unknown_deliveries() == 0
