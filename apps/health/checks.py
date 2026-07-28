@@ -6,6 +6,8 @@ from uuid import uuid4
 from django.core.cache import cache
 from django.db import connection
 
+from apps.health.metrics import increment
+
 DependencyCheck = Callable[[], None]
 
 
@@ -47,6 +49,7 @@ def run_readiness_checks() -> dict[str, str]:
             check()
         except Exception:  # noqa: BLE001 - readiness must convert dependency failures to 503
             results[name] = "failed"
+            increment("notificationos_readiness_failures_total", {"dependency": name})
         else:
             results[name] = "ok"
 

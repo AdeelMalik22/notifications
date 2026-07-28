@@ -39,6 +39,7 @@ Local endpoints:
 - OpenAPI schema: <http://localhost:8000/api/schema/>
 - Liveness: <http://localhost:8000/health/live>
 - Readiness: <http://localhost:8000/health/ready>
+- Metrics: <http://localhost:8000/health/metrics> (protect this endpoint at the network layer)
 - Mailpit: <http://localhost:8025/>
 - RabbitMQ management: <http://localhost:15672/>
 
@@ -68,6 +69,32 @@ build.
 
 `make ci` runs the host-side quality gates. GitHub additionally starts real
 services and boots the production container image.
+
+## Operations and recovery
+
+Every request carries an `X-Request-ID`, and structured JSON logs include that
+ID and bounded request timing. The `/health/metrics` endpoint exposes process
+counters in Prometheus format; scrape it only from a private monitoring
+network. Alert on readiness failures, sustained HTTP 5xx responses, delivery
+dead letters, and queue backlog.
+
+Create a PostgreSQL custom-format backup with:
+
+```bash
+BACKUP_DIR=/secure/notifications-backups ./scripts/backup_postgres.sh
+```
+
+Recovery must be tested against an isolated PostgreSQL database, never the
+primary database. Restore and verify a backup with:
+
+```bash
+./scripts/verify_postgres_backup.sh /secure/notifications-backups/notifications-<timestamp>.dump \
+  postgresql://restore_user:password@localhost:5432/notifications_restore
+```
+
+Run backups on a schedule, encrypt them at rest, restrict access, retain them
+according to the data-retention policy, and record the last successful backup
+and recovery drill in the operations log.
 
 When running Django directly with `notifications.settings.local`, the project
 loads `.env` automatically. Production and test settings do not load `.env`.

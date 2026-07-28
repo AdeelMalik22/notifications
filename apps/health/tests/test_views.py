@@ -48,3 +48,16 @@ def test_readiness_returns_safe_503_when_a_dependency_fails() -> None:
         "status": "unavailable",
         "checks": {"database": "failed", "cache": "ok"},
     }
+
+
+def test_metrics_exposes_prometheus_counters() -> None:
+    from apps.health.metrics import increment, reset
+
+    reset()
+    increment("notificationos_http_requests_total", {"method": "GET", "status": "200"})
+
+    response = APIClient().get(reverse("health:metrics"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert b"notificationos_http_requests_total" in response.content
+    reset()

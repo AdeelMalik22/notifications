@@ -9,6 +9,7 @@ from uuid import uuid4
 from django.http import HttpRequest, HttpResponseBase
 
 from apps.common.context import bind_request_id, reset_request_id
+from apps.health.metrics import increment
 
 logger = logging.getLogger("notificationos.request")
 
@@ -41,6 +42,12 @@ class RequestIDMiddleware:
         try:
             response = self.get_response(request)
             response[REQUEST_ID_HEADER] = request_id
+            increment(
+                "notificationos_http_requests_total",
+                {"method": request.method or "-", "status": str(response.status_code)},
+            )
+            if response.status_code >= 500:
+                increment("notificationos_http_errors_total")
             logger.info(
                 "request_completed",
                 extra={

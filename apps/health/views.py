@@ -1,5 +1,6 @@
 """Liveness and readiness API views."""
 
+from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.health.checks import run_readiness_checks
+from apps.health.metrics import render
 from apps.health.serializers import LivenessSerializer, ReadinessSerializer
 
 
@@ -26,6 +28,14 @@ class LivenessView(PublicHealthView):
     def get(self, request: Request) -> Response:
         """Return immediately without contacting external dependencies."""
         return Response({"status": "ok"})
+
+
+class MetricsView(PublicHealthView):
+    """Expose process metrics for a private Prometheus scrape target."""
+
+    def get(self, request: Request) -> HttpResponse:
+        """Return metrics without including request payloads or PII."""
+        return HttpResponse(render(), content_type="text/plain; version=0.0.4")
 
 
 class ReadinessView(PublicHealthView):
