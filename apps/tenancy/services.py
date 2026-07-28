@@ -33,6 +33,13 @@ def create_api_key(
         scopes=scopes,
         expires_at=expires_at,
     )
+    record_event(
+        business,
+        "api_key.created",
+        "APIKey",
+        key.id,
+        metadata={"name": name, "scope_count": len(scopes)},
+    )
     return key, f"nos_{prefix}.{secret}"
 
 

@@ -39,6 +39,7 @@ def test_api_key_creation_returns_secret_once() -> None:
 
     assert response.status_code == 201
     assert response.json()["secret"].startswith("nos_")
+    assert AuditEvent.objects.filter(action="api_key.created").count() == 2
 
 
 def test_api_key_rotation_revokes_old_key_and_audits() -> None:
