@@ -7,6 +7,7 @@ import secrets
 from django.conf import settings
 from django.utils import timezone
 
+from apps.audit.services import record_event
 from apps.tenancy.models import APIKey, Business
 
 
@@ -35,9 +36,27 @@ def create_api_key(
     return key, f"nos_{prefix}.{secret}"
 
 
-def revoke_api_key(api_key: APIKey) -> APIKey:
+def rotate_api_key(api_key: APIKey, *, actor_key: APIKey | None = None) -> tuple[APIKey, str]:
+    replacement, plaintext = create_api_key(
+        api_key.business, api_key.name, list(api_key.scopes), api_key.expires_at
+    )
     api_key.revoked_at = timezone.now()
     api_key.save(update_fields=["revoked_at"])
+    record_event(
+        api_key.business,
+        "api_key.rotated",
+        "APIKey",
+        api_key.id,
+        actor_key=actor_key,
+        metadata={"replacement_id": str(replacement.id)},
+    )
+    return replacement, plaintext
+
+
+def revoke_api_key(api_key: APIKey, *, actor_key: APIKey | None = None) -> APIKey:
+    api_key.revoked_at = timezone.now()
+    api_key.save(update_fields=["revoked_at"])
+    record_event(api_key.business, "api_key.revoked", "APIKey", api_key.id, actor_key=actor_key)
     return api_key
 
 

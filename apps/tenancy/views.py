@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from apps.tenancy.authentication import APIKeyAuthentication
 from apps.tenancy.permissions import HasAPIKey
 from apps.tenancy.serializers import APIKeyCreateSerializer, APIKeySerializer
-from apps.tenancy.services import create_api_key, revoke_api_key
+from apps.tenancy.services import create_api_key, revoke_api_key, rotate_api_key
 
 
 class APIKeyListCreateView(APIView):
@@ -43,5 +43,20 @@ class APIKeyRevokeView(APIView):
             return Response({"detail": "Insufficient scope."}, status=status.HTTP_403_FORBIDDEN)
         key = context.business.api_keys.get(pk=key_id)
         if key.revoked_at is None:
-            revoke_api_key(key)
+            revoke_api_key(key, actor_key=context.api_key)
         return Response(APIKeySerializer(key).data)
+
+
+class APIKeyRotateView(APIView):
+    authentication_classes = [APIKeyAuthentication]
+    permission_classes = [HasAPIKey]
+
+    def post(self, request: Request, key_id: str) -> Response:
+        context = request.tenant_context
+        if not context.has_scope("api_keys:write"):
+            return Response({"detail": "Insufficient scope."}, status=status.HTTP_403_FORBIDDEN)
+        key = context.business.api_keys.get(pk=key_id)
+        if not key.is_usable:
+            return Response({"detail": "Only usable keys can be rotated."}, status=400)
+        replacement, plaintext = rotate_api_key(key, actor_key=context.api_key)
+        return Response({"key": APIKeySerializer(replacement).data, "secret": plaintext})

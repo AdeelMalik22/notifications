@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "apps.common",
+    "apps.audit",
     "apps.delivery",
     "apps.health",
     "apps.tenancy",

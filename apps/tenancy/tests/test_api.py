@@ -1,6 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
+from apps.audit.models import AuditEvent
 from apps.tenancy.models import APIKey
 from apps.tenancy.services import create_api_key, create_business
 
@@ -38,3 +39,39 @@ def test_api_key_creation_returns_secret_once() -> None:
 
     assert response.status_code == 201
     assert response.json()["secret"].startswith("nos_")
+
+
+def test_api_key_rotation_revokes_old_key_and_audits() -> None:
+    business = create_business("Acme")
+    key, secret = create_api_key(
+        business, "admin", [APIKey.Scope.API_KEYS_WRITE, APIKey.Scope.CATALOG_READ]
+    )
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {secret}")
+
+    response = client.post(f"/api/v1/api-keys/{key.id}/rotate/", {}, format="json")
+
+    assert response.status_code == 200
+    replacement = APIKey.objects.get(id=response.json()["key"]["id"])
+    assert key.refresh_from_db() is None
+    assert key.revoked_at is not None
+    assert replacement.scopes == key.scopes
+    assert response.json()["secret"].startswith(f"nos_{replacement.prefix}.")
+    event = AuditEvent.objects.get(action="api_key.rotated")
+    assert event.business_id == business.id
+    assert event.actor_key_id == key.id
+    assert event.metadata == {"replacement_id": str(replacement.id)}
+
+
+def test_api_key_revoke_creates_audit_event() -> None:
+    business = create_business("Acme")
+    key, secret = create_api_key(business, "admin", [APIKey.Scope.API_KEYS_WRITE])
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {secret}")
+
+    response = client.post(f"/api/v1/api-keys/{key.id}/revoke/")
+
+    assert response.status_code == 200
+    event = AuditEvent.objects.get(action="api_key.revoked")
+    assert event.object_id == key.id
+    assert event.actor_key_id == key.id
