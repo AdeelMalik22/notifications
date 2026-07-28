@@ -62,6 +62,12 @@ second nested `notifications/notifications/` package.
 7. Initial notification catalogue and recipient boundary: categories, event
    types, channel templates and versions, recipients, preferences, tenant
    scoping, and mandatory-category validation.
+8. Notification trigger and delivery foundation: idempotency, notification and
+   delivery snapshots, transactional outbox, Celery relay/tasks, provider
+   attempts, fixed retries, status aggregation, and delivery history APIs.
+9. Provider and operations foundation: Twilio-compatible SMS adapter, Fernet
+   provider-credential encryption, tenant/recipient rate limits, scoped audit
+   queries, and local `.env` loading for local settings.
 
 The first CI run for this workflow passed:
 <https://github.com/AdeelMalik22/notifications/actions/runs/29990927486>.
@@ -128,6 +134,9 @@ continuing feature work. Do not infer success from local checks alone.
   `python manage.py makemigrations --check --dry-run` before committing.
 - Unit tests use in-memory SQLite and locmem cache. Any behavior relying on
   PostgreSQL, Redis, RabbitMQ, or a worker needs a real integration test.
+- Provider secrets must use `PROVIDER_ENCRYPTION_KEY`; never commit `.env`, raw
+  credentials, or provider secrets. Local settings load `.env` automatically;
+  production and test settings do not.
 
 ## Remaining work
 
@@ -135,14 +144,12 @@ The detailed roadmap is in `plan.md`. Build the next slices in this order,
 with migrations, tests, documentation, focused commits, and pushes for each.
 
 1. **Provider configuration and production delivery**
-   - Add encrypted tenant provider credentials and configuration APIs.
    - Wire the SMTP and Twilio-compatible adapters to tenant configuration.
    - Add provider error classification, dead-letter handling, and ambiguous
      outcome reconciliation.
 2. **Safety and operations**
-   - Add tenant admission limits, recipient rate limits, queue fairness,
-     retention/deletion/anonymization jobs, metrics, tracing context, backups,
-     and recovery verification.
+   - Add queue fairness, retention/deletion/anonymization jobs, metrics,
+     tracing context, backups, and recovery verification.
 3. **API and acceptance testing**
    - Add internal Django Admin support for catalogue, recipients, delivery,
      and audit records.
