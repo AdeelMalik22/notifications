@@ -53,6 +53,7 @@ def test_reconcile_unknown_deliveries_counts_ambiguous_work() -> None:
 
 def test_retention_clears_old_content_and_anonymizes_recipient(settings) -> None:
     from datetime import timedelta
+
     from django.utils import timezone
 
     settings.NOTIFICATION_CONTENT_RETENTION_DAYS = 30
