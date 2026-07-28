@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.common",
     "apps.audit",
+    "apps.notifications",
     "apps.delivery",
     "apps.health",
     "apps.tenancy",
