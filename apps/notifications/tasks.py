@@ -4,6 +4,7 @@ from celery import shared_task
 from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
+from django.conf import settings
 
 from apps.delivery.errors import AmbiguousProviderError, PermanentProviderError
 from apps.delivery.models import ProviderConfiguration
@@ -11,8 +12,9 @@ from apps.delivery.providers.base import SMSMessage
 from apps.delivery.providers.fake_sms import FakeSMSProvider
 from apps.delivery.providers.twilio_sms import TwilioSMSProvider
 from apps.delivery.services import load_provider_credentials
-from apps.notifications.models import Delivery, DeliveryAttempt, OutboxEvent
+from apps.notifications.models import Delivery, DeliveryAttempt, Notification, OutboxEvent
 from apps.notifications.services import refresh_notification_status
+from apps.recipients.models import Recipient
 
 
 @shared_task(ignore_result=True, name="notificationos.notifications.relay_outbox")  # type: ignore[untyped-decorator]
@@ -156,3 +158,24 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
 def reconcile_unknown_deliveries() -> int:
     """Leave ambiguous outcomes visible for provider-specific reconciliation."""
     return Delivery.objects.filter(status="unknown").count()
+
+
+@shared_task(ignore_result=True, name="notificationos.notifications.run_retention")  # type: ignore[untyped-decorator]
+def run_retention() -> dict[str, int]:
+    """Remove retained content while preserving non-PII delivery metadata."""
+    content_cutoff = timezone.now() - timedelta(days=settings.NOTIFICATION_CONTENT_RETENTION_DAYS)
+    metadata_cutoff = timezone.now() - timedelta(days=settings.NOTIFICATION_METADATA_RETENTION_DAYS)
+    content_rows = Notification.objects.filter(created_at__lt=content_cutoff).exclude(payload={})
+    content_count = content_rows.update(payload={})
+    Delivery.objects.filter(created_at__lt=content_cutoff).exclude(template_snapshot={}).update(
+        template_snapshot={}
+    )
+    recipient_ids = (
+        Recipient.objects.filter(is_active=True, notification__created_at__lt=metadata_cutoff)
+        .values_list("id", flat=True)
+        .distinct()
+    )
+    recipient_count = Recipient.objects.filter(id__in=recipient_ids).update(
+        email="", phone_number="", is_active=False
+    )
+    return {"notifications_cleared": content_count, "recipients_anonymized": recipient_count}
