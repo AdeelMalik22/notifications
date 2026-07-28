@@ -2,7 +2,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.notifications.serializers import NotificationTriggerSerializer
+from apps.notifications.models import Notification
+from apps.notifications.serializers import NotificationSerializer, NotificationTriggerSerializer
 from apps.notifications.services import trigger_notification
 from apps.tenancy.authentication import APIKeyAuthentication
 from apps.tenancy.permissions import HasAPIKey
@@ -37,3 +38,17 @@ class NotificationTriggerView(APIView):
             },
             status=status.HTTP_200_OK if duplicate else status.HTTP_202_ACCEPTED,
         )
+
+
+class NotificationHistoryView(APIView):
+    authentication_classes = [APIKeyAuthentication]
+    permission_classes = [HasAPIKey]
+
+    def get(self, request, notification_id=None):
+        queryset = Notification.objects.filter(
+            business=request.tenant_context.business
+        ).prefetch_related("deliveries__attempts")
+        if notification_id is not None:
+            notification = queryset.get(id=notification_id)
+            return Response(NotificationSerializer(notification).data)
+        return Response(NotificationSerializer(queryset[:100], many=True).data)
