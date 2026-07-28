@@ -159,6 +159,15 @@ Never place the returned secret in source control or application logs.
 
 See the detailed [catalogue API reference](docs/api/catalogue.md).
 
+## Django Admin
+
+The internal Admin site at `/admin/` registers every NotificationOS domain
+model: tenants and API keys, catalogue and template versions, recipients and
+preferences, provider configurations, notifications and delivery attempts,
+outbox events, and audit events. Delivery snapshots, notification payloads,
+provider ciphertext, API-key digests, and audit records are read-only to avoid
+accidental mutation of operational history or secrets.
+
 The initial tenant-scoped management resources are available under `/api/v1/`:
 
 - `GET/POST /categories/`

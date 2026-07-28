@@ -36,6 +36,7 @@ class DeliveryAdmin(admin.ModelAdmin):
         "preference_reason",
         "created_at",
         "next_attempt_at",
+        "dead_lettered_at",
     ]
 
 
