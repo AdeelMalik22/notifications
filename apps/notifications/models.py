@@ -10,6 +10,9 @@ class Notification(models.Model):
     class Status(models.TextChoices):
         ACCEPTED = "accepted", "Accepted"
         SUPPRESSED = "suppressed", "Suppressed"
+        SENT = "sent", "Sent"
+        PARTIALLY_SENT = "partially_sent", "Partially sent"
+        FAILED = "failed", "Failed"
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="notifications")

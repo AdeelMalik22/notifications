@@ -8,6 +8,7 @@ from django.utils import timezone
 from apps.delivery.providers.base import SMSMessage
 from apps.delivery.providers.fake_sms import FakeSMSProvider
 from apps.notifications.models import Delivery, DeliveryAttempt, OutboxEvent
+from apps.notifications.services import refresh_notification_status
 
 
 @shared_task(ignore_result=True, name="notificationos.notifications.relay_outbox")  # type: ignore[untyped-decorator]
@@ -73,6 +74,7 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
         )
         delivery.status = "failed"
         delivery.save(update_fields=["status"])
+        refresh_notification_status(delivery.notification)
         return
     except Exception as error:  # transient provider errors are retried twice
         DeliveryAttempt.objects.create(
@@ -93,3 +95,4 @@ def deliver_notification(self, delivery_id: str, business_id: str, channel: str)
     )
     delivery.status = "sent"
     delivery.save(update_fields=["status"])
+    refresh_notification_status(delivery.notification)

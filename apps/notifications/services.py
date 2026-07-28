@@ -14,6 +14,26 @@ def _fingerprint(payload: dict) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def refresh_notification_status(notification: Notification) -> Notification:
+    statuses = set(notification.deliveries.values_list("status", flat=True))
+    if not statuses:
+        return notification
+    if statuses == {"suppressed"}:
+        target = Notification.Status.SUPPRESSED
+    elif statuses == {"sent"}:
+        target = "sent"
+    elif "sent" in statuses and statuses - {"sent"}:
+        target = "partially_sent"
+    elif statuses <= {"failed"}:
+        target = "failed"
+    else:
+        target = Notification.Status.ACCEPTED
+    if notification.status != target:
+        notification.status = target
+        notification.save(update_fields=["status"])
+    return notification
+
+
 @transaction.atomic
 def trigger_notification(
     business: Business, idempotency_key: str, payload: dict

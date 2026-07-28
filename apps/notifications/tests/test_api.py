@@ -3,6 +3,7 @@ from rest_framework.test import APIClient
 
 from apps.catalog.models import EventType, NotificationCategory, Template, TemplateVersion
 from apps.notifications.models import Delivery, Notification, OutboxEvent
+from apps.notifications.services import refresh_notification_status
 from apps.recipients.models import Recipient
 from apps.tenancy.models import APIKey
 from apps.tenancy.services import create_api_key, create_business
@@ -71,3 +72,36 @@ def test_trigger_rejects_idempotency_conflict() -> None:
         ).status_code
         == 409
     )
+
+
+def test_notification_status_aggregates_delivery_outcomes() -> None:
+    business = create_business("Acme")
+    recipient = Recipient.objects.create(business=business, external_id="user-1")
+    notification = Notification.objects.create(
+        business=business,
+        event_type="order.shipped",
+        recipient=recipient,
+        idempotency_key="status-1",
+        request_fingerprint="b" * 64,
+        status="accepted",
+        payload={},
+    )
+    Delivery.objects.create(
+        business=business,
+        notification=notification,
+        channel="email",
+        status="sent",
+        template_snapshot={},
+    )
+    Delivery.objects.create(
+        business=business,
+        notification=notification,
+        channel="sms",
+        status="failed",
+        template_snapshot={},
+    )
+
+    refresh_notification_status(notification)
+
+    notification.refresh_from_db()
+    assert notification.status == "partially_sent"
