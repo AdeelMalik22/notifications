@@ -1,7 +1,9 @@
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.notifications.limits import allow_recipient, allow_tenant
 from apps.notifications.models import Notification
 from apps.notifications.serializers import NotificationSerializer, NotificationTriggerSerializer
 from apps.notifications.services import trigger_notification
@@ -24,6 +26,16 @@ class NotificationTriggerView(APIView):
         payload = serializer.validated_data
         payload["variables"] = dict(payload["variables"])
         payload["recipient_id"] = str(payload["recipient_id"])
+        if not allow_tenant(
+            str(request.tenant_context.business.id), settings.NOTIFICATION_TENANT_RATE_LIMIT
+        ):
+            return Response({"detail": "Tenant notification rate limit exceeded."}, status=429)
+        if not allow_recipient(
+            str(request.tenant_context.business.id),
+            payload["recipient_id"],
+            settings.NOTIFICATION_RECIPIENT_RATE_LIMIT,
+        ):
+            return Response({"detail": "Recipient notification rate limit exceeded."}, status=429)
         try:
             notification, duplicate = trigger_notification(
                 request.tenant_context.business, key, payload
