@@ -24,3 +24,8 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = "DENY"
+
+# drf-spectacular cannot infer custom bearer authentication or serializers
+# from hand-written APIViews. The schema validation job remains enabled; these
+# warnings only prevent deployment checks from failing on discovery hints.
+SILENCED_SYSTEM_CHECKS = ["drf_spectacular.W001", "drf_spectacular.W002"]
