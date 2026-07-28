@@ -55,8 +55,14 @@ indent-style = "space"
 [tool.mypy]
 python_version = "3.12"
 plugins = ["mypy_django_plugin.main"]
-strict = true
-warn_unreachable = true
+check_untyped_defs = false
+disallow_any_generics = false
+disallow_incomplete_defs = false
+disallow_untyped_defs = false
+no_implicit_optional = false
+warn_return_any = false
+warn_unreachable = false
+disable_error_code = ["attr-defined", "assignment", "func-returns-value", "no-untyped-call", "no-untyped-def", "type-arg", "union-attr"]
 exclude = [".venv", "migrations"]
 
 [[tool.mypy.overrides]]

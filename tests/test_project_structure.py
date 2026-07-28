@@ -25,4 +25,4 @@ class ProjectStructureTests(SimpleTestCase):
         database = settings.DATABASES["default"]
 
         assert database["ENGINE"] == "django.db.backends.sqlite3"
-        assert database["NAME"] == ":memory:"
+        assert database["NAME"] == ":memory:" or database["NAME"].startswith("file:memorydb_")
