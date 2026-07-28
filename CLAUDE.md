@@ -134,28 +134,21 @@ continuing feature work. Do not infer success from local checks alone.
 The detailed roadmap is in `plan.md`. Build the next slices in this order,
 with migrations, tests, documentation, focused commits, and pushes for each.
 
-1. **Complete architecture decisions and tenancy**
-   - Add API-key rotation and audit events for sensitive key operations.
-2. **Complete notification catalogue and recipients**
-   - Add template publishing/preview, safe restricted rendering, and full
-     update/delete lifecycle actions.
-3. **Trigger and durable delivery pipeline**
-   - Implement `POST /api/v1/notifications` with required idempotency keys.
-   - Store notification, delivery snapshots, and outbox rows in one database
-     transaction.
-   - Add an outbox relay and idempotent Celery delivery tasks.
-4. **Real providers and delivery history**
-   - Add SMTP email and Twilio-compatible SMS adapters.
-   - Encrypt provider credentials; record delivery attempts and fixed retries
-     (initial send plus two retries, 60 seconds apart).
-5. **Safety and operations**
-   - Add tenant admission limits, recipient rate limits, queue fairness, audit
-     records, retention/deletion/anonymization jobs, metrics, tracing context,
-     backups, and recovery verification.
-6. **API and acceptance testing**
-   - Complete `/api/v1/` CRUD resources and internal Django Admin support.
-   - Add integration/contract/e2e tests for tenant isolation, idempotency,
-     retries, preference handling, provider failures, and PII-safe logs.
+1. **Provider configuration and production delivery**
+   - Add encrypted tenant provider credentials and configuration APIs.
+   - Wire the SMTP and Twilio-compatible adapters to tenant configuration.
+   - Add provider error classification, dead-letter handling, and ambiguous
+     outcome reconciliation.
+2. **Safety and operations**
+   - Add tenant admission limits, recipient rate limits, queue fairness,
+     retention/deletion/anonymization jobs, metrics, tracing context, backups,
+     and recovery verification.
+3. **API and acceptance testing**
+   - Add internal Django Admin support for catalogue, recipients, delivery,
+     and audit records.
+   - Add integration/contract/e2e tests for tenant isolation, concurrency,
+     idempotency, retries, preference handling, provider failures, and PII-safe
+     logs.
 
 Before changing scope, compare the request against `plan.md` and
 `NotificationOS_PRD_v2.md`; document any material product decision in an ADR.
