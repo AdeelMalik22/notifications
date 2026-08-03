@@ -151,6 +151,9 @@ delivery, unsafe latency, or a migration/application incompatibility.
   use `scripts/verify_postgres_backup.sh` before touching the primary.
 - Rollback does not revoke API keys or erase notification history.
 
+Reconciliation and dead-letter replay procedures are documented in
+[`docs/runbooks/reconciliation.md`](reconciliation.md).
+
 ## Retention verification
 
 Run `run_retention` daily through Celery Beat or the platform scheduler. Verify

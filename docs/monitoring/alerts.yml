@@ -1,0 +1,27 @@
+groups:
+  - name: notificationos
+    rules:
+      - alert: NotificationOSReadinessFailure
+        expr: sum(increase(notificationos_readiness_failures_total[5m])) > 0
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: NotificationOS readiness is failing
+      - alert: NotificationOSDeadLetters
+        expr: sum(notificationos_delivery_dead_lettered) > 0
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: NotificationOS has dead-lettered deliveries
+      - alert: NotificationOSUnknownDeliveries
+        expr: sum(notificationos_delivery_unknown) > 0
+        for: 10m
+        labels: {severity: critical}
+        annotations:
+          summary: Provider outcomes require reconciliation
+      - alert: NotificationOSOutboxBacklog
+        expr: sum(notificationos_outbox_unpublished) > 0
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: NotificationOS outbox has unpublished work
