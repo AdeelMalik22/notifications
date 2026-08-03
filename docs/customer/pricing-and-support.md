@@ -1,6 +1,6 @@
 # Pricing, support, and service policy
 
-These are the pilot-release commercial defaults. Provider fees, taxes, and
+These are the accepted pilot-release commercial defaults. Provider fees, taxes, and
 optional implementation work are billed separately.
 
 ## Plans
