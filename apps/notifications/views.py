@@ -9,6 +9,7 @@ from apps.notifications.limits import allow_recipient, allow_tenant, plan_limits
 from apps.notifications.models import Notification
 from apps.notifications.serializers import NotificationSerializer, NotificationTriggerSerializer
 from apps.notifications.services import trigger_notification
+from apps.recipients.models import Recipient
 from apps.tenancy.authentication import APIKeyAuthentication
 from apps.tenancy.permissions import HasAPIKey
 
@@ -31,6 +32,10 @@ class NotificationTriggerView(APIView):
         payload["variables"] = dict(payload["variables"])
         payload["recipient_id"] = str(payload["recipient_id"])
         business = request.tenant_context.business
+        if not Recipient.objects.filter(
+            id=payload["recipient_id"], business=business, is_active=True
+        ).exists():
+            return Response({"detail": "Recipient not found."}, status=status.HTTP_404_NOT_FOUND)
         limits = plan_limits(business.plan)
         tenant_limit = min(settings.NOTIFICATION_TENANT_RATE_LIMIT, limits["tenant_rate"])
         if not allow_tenant(str(business.id), tenant_limit):

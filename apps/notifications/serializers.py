@@ -18,7 +18,7 @@ class NotificationTriggerSerializer(serializers.Serializer):
                 {"variables": f"At most {settings.NOTIFICATION_MAX_VARIABLES} variables are allowed."}
             )
         try:
-            payload_size = len(json.dumps(attrs, separators=(",", ":")).encode())
+            payload_size = len(json.dumps(attrs, separators=(",", ":"), default=str).encode())
         except (TypeError, ValueError) as exc:
             raise serializers.ValidationError("Variables must contain JSON values.") from exc
         if payload_size > settings.NOTIFICATION_MAX_PAYLOAD_BYTES:
