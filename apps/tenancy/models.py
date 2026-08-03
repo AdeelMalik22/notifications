@@ -8,9 +8,15 @@ from django.db import models
 class Business(models.Model):
     """A NotificationOS tenant."""
 
+    class Plan(models.TextChoices):
+        FREE = "free", "Free"
+        PROFESSIONAL = "professional", "Professional"
+        ENTERPRISE = "enterprise", "Enterprise"
+
     id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     name = models.CharField(max_length=200)
     public_id = models.CharField(max_length=32, unique=True, editable=False)
+    plan = models.CharField(max_length=20, choices=Plan.choices, default=Plan.FREE)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

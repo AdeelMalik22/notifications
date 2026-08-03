@@ -239,8 +239,11 @@ adapter.
 Provider credentials are encrypted at rest with `PROVIDER_ENCRYPTION_KEY`.
 The key must be supplied through the environment before saving provider
 configuration; it must never be committed or logged. Notification admission
-limits are configured with `NOTIFICATION_TENANT_RATE_LIMIT` and
-`NOTIFICATION_RECIPIENT_RATE_LIMIT`.
+limits default to 100 notifications/minute per tenant, 10/minute per
+recipient, 1,000 unpublished deliveries per tenant, and a 32 KiB trigger
+payload with at most 100 variables. Plans cap monthly notifications and
+recipients: Free (1,000 each), Professional (100,000 each), and Enterprise
+(1,000,000 each).
 
 Recipient email addresses and phone numbers are encrypted at rest with the
 separate `CONTACT_ENCRYPTION_KEY`. Normalized keyed HMAC digests using

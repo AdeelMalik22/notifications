@@ -1,10 +1,11 @@
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.notifications.limits import allow_recipient, allow_tenant
+from apps.notifications.limits import allow_recipient, allow_tenant, plan_limits
 from apps.notifications.models import Notification
 from apps.notifications.serializers import NotificationSerializer, NotificationTriggerSerializer
 from apps.notifications.services import trigger_notification
@@ -22,14 +23,17 @@ class NotificationTriggerView(APIView):
         key = request.headers.get("Idempotency-Key")
         if not key:
             return Response({"detail": "Idempotency-Key header is required."}, status=400)
+        if len(key) > settings.NOTIFICATION_MAX_IDEMPOTENCY_KEY_LENGTH:
+            return Response({"detail": "Idempotency-Key is too long."}, status=400)
         serializer = NotificationTriggerSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
         payload["variables"] = dict(payload["variables"])
         payload["recipient_id"] = str(payload["recipient_id"])
-        if not allow_tenant(
-            str(request.tenant_context.business.id), settings.NOTIFICATION_TENANT_RATE_LIMIT
-        ):
+        business = request.tenant_context.business
+        limits = plan_limits(business.plan)
+        tenant_limit = min(settings.NOTIFICATION_TENANT_RATE_LIMIT, limits["tenant_rate"])
+        if not allow_tenant(str(business.id), tenant_limit):
             return Response({"detail": "Tenant notification rate limit exceeded."}, status=429)
         if not allow_recipient(
             str(request.tenant_context.business.id),
@@ -37,6 +41,12 @@ class NotificationTriggerView(APIView):
             settings.NOTIFICATION_RECIPIENT_RATE_LIMIT,
         ):
             return Response({"detail": "Recipient notification rate limit exceeded."}, status=429)
+        month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        monthly_count = Notification.objects.filter(
+            business=business, created_at__gte=month_start
+        ).count()
+        if monthly_count >= limits["monthly_notifications"]:
+            return Response({"detail": "Monthly plan notification limit exceeded."}, status=429)
         try:
             notification, duplicate = trigger_notification(
                 request.tenant_context.business, key, payload

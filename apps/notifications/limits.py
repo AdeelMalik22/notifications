@@ -1,5 +1,26 @@
 from django.core.cache import cache
 
+from apps.tenancy.models import Business
+
+
+PLAN_LIMITS = {
+    Business.Plan.FREE: {"monthly_notifications": 1_000, "recipients": 1_000, "tenant_rate": 100},
+    Business.Plan.PROFESSIONAL: {
+        "monthly_notifications": 100_000,
+        "recipients": 100_000,
+        "tenant_rate": 1_000,
+    },
+    Business.Plan.ENTERPRISE: {
+        "monthly_notifications": 1_000_000,
+        "recipients": 1_000_000,
+        "tenant_rate": 10_000,
+    },
+}
+
+
+def plan_limits(plan: str) -> dict[str, int]:
+    return PLAN_LIMITS.get(plan, PLAN_LIMITS[Business.Plan.FREE])
+
 
 def _consume(key: str, limit: int, window: int = 60) -> bool:
     if limit <= 0:

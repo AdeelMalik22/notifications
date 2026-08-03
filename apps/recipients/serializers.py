@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.catalog.models import Channel, NotificationCategory
+from apps.notifications.limits import plan_limits
 from apps.recipients.models import Preference, Recipient
 
 
@@ -19,6 +20,15 @@ class RecipientSerializer(serializers.ModelSerializer):
         data["email"] = decrypt_contact(instance.email_ciphertext)
         data["phone_number"] = decrypt_contact(instance.phone_ciphertext)
         return data
+
+    def validate(self, attrs):
+        business = self.context["business"]
+        recipient_limit = plan_limits(business.plan)["recipients"]
+        if self.instance is None and business.recipients.count() >= recipient_limit:
+            raise serializers.ValidationError(
+                "Recipient limit for the tenant plan has been reached."
+            )
+        return attrs
 
     def create(self, validated_data):
         return Recipient.objects.create(business=self.context["business"], **validated_data)
