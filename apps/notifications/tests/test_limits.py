@@ -1,7 +1,6 @@
 from django.core.cache import cache
 
-from apps.notifications.limits import allow_recipient, allow_tenant
-from apps.notifications.limits import plan_limits
+from apps.notifications.limits import allow_recipient, allow_tenant, plan_limits
 from apps.tenancy.models import Business
 
 

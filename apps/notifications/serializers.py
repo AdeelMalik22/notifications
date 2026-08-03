@@ -15,7 +15,11 @@ class NotificationTriggerSerializer(serializers.Serializer):
         variables = attrs["variables"]
         if len(variables) > settings.NOTIFICATION_MAX_VARIABLES:
             raise serializers.ValidationError(
-                {"variables": f"At most {settings.NOTIFICATION_MAX_VARIABLES} variables are allowed."}
+                {
+                    "variables": (
+                        f"At most {settings.NOTIFICATION_MAX_VARIABLES} variables are allowed."
+                    )
+                }
             )
         try:
             payload_size = len(json.dumps(attrs, separators=(",", ":"), default=str).encode())

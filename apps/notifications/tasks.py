@@ -175,9 +175,11 @@ def run_retention() -> dict[str, int]:
     metadata_cutoff = timezone.now() - timedelta(days=settings.NOTIFICATION_METADATA_RETENTION_DAYS)
     content_rows = Notification.objects.filter(created_at__lt=content_cutoff).exclude(payload={})
     content_count = content_rows.update(payload={})
-    snapshot_count = Delivery.objects.filter(
-        notification__created_at__lt=content_cutoff
-    ).exclude(template_snapshot={}).update(template_snapshot={})
+    snapshot_count = (
+        Delivery.objects.filter(notification__created_at__lt=content_cutoff)
+        .exclude(template_snapshot={})
+        .update(template_snapshot={})
+    )
     recipient_ids = (
         Recipient.objects.filter(is_active=True, notification__isnull=False)
         .exclude(notification__created_at__gte=metadata_cutoff)

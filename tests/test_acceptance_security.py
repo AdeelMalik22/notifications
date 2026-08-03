@@ -20,10 +20,14 @@ pytestmark = pytest.mark.django_db
 def _fixture(name: str = "Acme"):
     business = create_business(name)
     category = NotificationCategory.objects.create(business=business, key="ops", name="Ops")
-    event = EventType.objects.create(business=business, key="alert", name="Alert", category=category)
+    event = EventType.objects.create(
+        business=business, key="alert", name="Alert", category=category
+    )
     template = Template.objects.create(business=business, event_type=event, channel="email")
     TemplateVersion.objects.create(template=template, version=1, status="published", body="{{x}}")
-    recipient = Recipient.objects.create(business=business, external_id="user", email="u@example.test")
+    recipient = Recipient.objects.create(
+        business=business, external_id="user", email="u@example.test"
+    )
     _, secret = create_api_key(business, "sender", [APIKey.Scope.NOTIFICATIONS_WRITE])
     return business, recipient, secret
 

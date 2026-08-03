@@ -2,7 +2,6 @@ from django.core.cache import cache
 
 from apps.tenancy.models import Business
 
-
 PLAN_LIMITS = {
     Business.Plan.FREE: {"monthly_notifications": 1_000, "recipients": 1_000, "tenant_rate": 100},
     Business.Plan.PROFESSIONAL: {
