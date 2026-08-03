@@ -6,6 +6,68 @@ PostgreSQL is the source of truth; Redis and RabbitMQ are managed dependencies.
 TLS termination, secret storage, backups, monitoring, and alerting belong at
 the hosting platform or private network boundary.
 
+## Backup, RPO, and RTO policy
+
+The production target is:
+
+- **RPO: 15 minutes.** At most 15 minutes of committed PostgreSQL state may be
+  lost. Use continuous WAL archiving or the managed PostgreSQL provider's
+  point-in-time recovery (PITR). A nightly `pg_dump` alone does not satisfy
+  this target.
+- **RTO: 60 minutes.** The API and workers must be restored and accepting
+  verified synthetic traffic within 60 minutes of declaring a database or
+  application outage.
+
+The minimum schedule is:
+
+- Continuous WAL/PITR enabled and monitored.
+- One encrypted PostgreSQL custom-format full backup every 24 hours, retained
+  for 35 days.
+- One monthly full backup retained for 12 months.
+- A restore drill once per month, using the newest daily backup and a separate
+  isolated database or temporary managed instance.
+- A quarterly PITR drill that restores to a timestamp within the last 15 days.
+
+Backups must be encrypted at rest and in transit, stored outside the primary
+database host/volume, access-controlled, and monitored for age and failure.
+The on-call owner records backup timestamp, WAL/PITR health, restore duration,
+verification result, and any corrective action. Alert if the newest successful
+backup is older than 26 hours, WAL/PITR lag exceeds 15 minutes, or a restore
+drill fails.
+
+Redis rate-limit counters and RabbitMQ transient queue state are not backed up
+as system-of-record data. After a disaster, accepted notifications and
+delivery state come from PostgreSQL; reconciliation must inspect unpublished
+outbox rows and ambiguous deliveries before replaying work.
+
+## Restore verification drill
+
+Never restore over the primary during a drill. Provision an empty isolated
+PostgreSQL database with the same major version and run:
+
+```bash
+./scripts/verify_postgres_backup.sh \
+  /secure/notifications-backups/notifications-<timestamp>.dump \
+  postgresql://restore_user:password@restore-host:5432/notifications_restore
+```
+
+The script must complete with `recovery verification passed`. Then verify the
+restored database has the migration table and core tables, run Django checks
+against the restored connection, and perform a read-only API smoke test. A
+successful drill requires all of the following:
+
+- restore exits successfully without manual SQL fixes;
+- `django_migrations` is present and migrations are complete;
+- `tenancy_business`, `notifications_notification`, `notifications_delivery`,
+  and `notifications_outboxevent` exist;
+- row counts for a selected known tenant and recent notification are present;
+- `manage.py check --deploy` passes with production settings;
+- restore duration is recorded and is below the 60-minute RTO.
+
+Destroy the isolated database after recording the result. A failed drill is a
+production incident for backup reliability: open a corrective action, rerun
+the drill, and do not mark the backup policy verified until it passes.
+
 ## Required production configuration
 
 Set these values in the platform secret/configuration store, not in Git:

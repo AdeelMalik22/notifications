@@ -89,6 +89,9 @@ SQLite test suite.
 
 The production process layout, required secrets, release checks, and rollback
 procedure are documented in [the deployment runbook](docs/runbooks/deployment.md).
+The recovery targets are RPO 15 minutes and RTO 60 minutes, backed by
+continuous PostgreSQL WAL/PITR, daily encrypted full backups, and monthly
+isolated restore drills.
 
 Every request carries an `X-Request-ID`, and structured JSON logs include that
 ID and bounded request timing. The `/health/metrics` endpoint exposes process
