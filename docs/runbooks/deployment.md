@@ -150,3 +150,14 @@ delivery, unsafe latency, or a migration/application incompatibility.
 - Database restore is a last resort and requires isolated verification first;
   use `scripts/verify_postgres_backup.sh` before touching the primary.
 - Rollback does not revoke API keys or erase notification history.
+
+## Retention verification
+
+Run `run_retention` daily through Celery Beat or the platform scheduler. Verify
+the task result and alert when it fails. Production-like acceptance tests must
+create both old and recent records and confirm that old notification payloads
+and rendered snapshots are empty, recent content remains intact, and
+recipients with recent activity remain active. A second run must be a no-op.
+Recipient ciphertext and lookup digests are emptied only after the
+metadata-retention window; business and delivery metadata remain available for
+operational history.

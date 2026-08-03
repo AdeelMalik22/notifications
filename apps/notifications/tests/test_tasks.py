@@ -87,7 +87,70 @@ def test_retention_clears_old_content_and_anonymizes_recipient(settings) -> None
     notification.refresh_from_db()
     recipient.refresh_from_db()
     assert result["notifications_cleared"] == 1
+    assert result["snapshots_cleared"] == 1
     assert notification.payload == {}
     assert recipient.email == ""
     assert recipient.phone_number == ""
     assert recipient.is_active is False
+
+
+def test_retention_preserves_recent_content_and_active_recipient(settings) -> None:
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    settings.NOTIFICATION_CONTENT_RETENTION_DAYS = 30
+    settings.NOTIFICATION_METADATA_RETENTION_DAYS = 90
+    business = create_business("Recent")
+    recipient = Recipient.objects.create(
+        business=business, external_id="recent-user", email="recent@example.test"
+    )
+    old_notification = Notification.objects.create(
+        business=business,
+        event_type="old.event",
+        recipient=recipient,
+        idempotency_key="old-retention",
+        request_fingerprint="d" * 64,
+        status="sent",
+        payload={"old": "secret"},
+    )
+    old_time = timezone.now() - timedelta(days=100)
+    Notification.objects.filter(id=old_notification.id).update(created_at=old_time)
+    recent_notification = Notification.objects.create(
+        business=business,
+        event_type="recent.event",
+        recipient=recipient,
+        idempotency_key="recent-retention",
+        request_fingerprint="e" * 64,
+        status="accepted",
+        payload={"recent": "secret"},
+    )
+    delivery = Delivery.objects.create(
+        business=business,
+        notification=old_notification,
+        channel="email",
+        status="sent",
+        template_snapshot={"body": "old secret"},
+    )
+    Delivery.objects.filter(id=delivery.id).update(created_at=timezone.now())
+
+    result = run_retention()
+
+    old_notification.refresh_from_db()
+    recent_notification.refresh_from_db()
+    recipient.refresh_from_db()
+    delivery.refresh_from_db()
+    assert result["notifications_cleared"] == 1
+    assert result["snapshots_cleared"] == 1
+    assert result["recipients_anonymized"] == 0
+    assert old_notification.payload == {}
+    assert recent_notification.payload == {"recent": "secret"}
+    assert delivery.template_snapshot == {}
+    assert recipient.is_active is True
+    assert recipient.email_ciphertext != b""
+    assert recipient.email_lookup != ""
+    assert run_retention() == {
+        "notifications_cleared": 0,
+        "snapshots_cleared": 0,
+        "recipients_anonymized": 0,
+    }
