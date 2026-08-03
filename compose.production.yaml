@@ -1,0 +1,63 @@
+name: ${COMPOSE_PROJECT_NAME:-notificationos}
+
+# Production overlay. PostgreSQL, Redis, RabbitMQ, TLS termination, secrets,
+# backups, and log shipping are supplied by the hosting platform. Do not use
+# the local compose file or its default credentials in production.
+x-app: &app
+  image: ${NOTIFICATIONOS_IMAGE:?Set NOTIFICATIONOS_IMAGE to an immutable image tag or digest}
+  init: true
+  restart: unless-stopped
+  env_file:
+    - ${NOTIFICATIONOS_ENV_FILE:?Set NOTIFICATIONOS_ENV_FILE to the managed secret file}
+  environment:
+    DJANGO_SETTINGS_MODULE: notifications.settings.production
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["python", "manage.py", "migrate", "--noinput"]
+
+  web:
+    <<: *app
+    command:
+      [
+        "gunicorn",
+        "notifications.wsgi:application",
+        "--bind", "0.0.0.0:8000",
+        "--workers", "${WEB_WORKERS:-4}",
+        "--threads", "2",
+        "--timeout", "30",
+        "--graceful-timeout", "30",
+        "--access-logfile", "-",
+        "--error-logfile", "-"
+      ]
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    <<: *app
+    command:
+      [
+        "celery", "-A", "notifications", "worker",
+        "--loglevel=INFO", "--concurrency=${WORKER_CONCURRENCY:-4}",
+        "--hostname=worker@%h"
+      ]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 60s

@@ -87,6 +87,9 @@ SQLite test suite.
 
 ## Operations and recovery
 
+The production process layout, required secrets, release checks, and rollback
+procedure are documented in [the deployment runbook](docs/runbooks/deployment.md).
+
 Every request carries an `X-Request-ID`, and structured JSON logs include that
 ID and bounded request timing. The `/health/metrics` endpoint exposes process
 counters in Prometheus format; scrape it only from a private monitoring
