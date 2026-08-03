@@ -92,7 +92,7 @@ quickly, but the product owner should approve them.
 | Provider callbacks | Defer delivered/bounced callbacks unless a pilot customer requires them | Public beta |
 | Rate and volume limits | Define numerical tenant, recipient, payload, and plan limits before load testing | Pilot |
 | Recovery targets | Define backup frequency plus RPO/RTO and verify them before production | Production launch |
-| Pricing and GTM | Finalize tiers, caps, and first-customer plan | Public beta |
+| Pricing and GTM | Free $0/1,000, Professional $49/100,000, Enterprise from $499/1,000,000; support and onboarding documented | Public beta |
 
 The audit-log scope conflict in the PRD is resolved as follows:
 

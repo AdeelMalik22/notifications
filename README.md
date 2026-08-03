@@ -89,6 +89,9 @@ SQLite test suite.
 
 The production process layout, required secrets, release checks, and rollback
 procedure are documented in [the deployment runbook](docs/runbooks/deployment.md).
+Customer setup is documented in [the onboarding guide](docs/customer/onboarding.md),
+with plan caps and support commitments in
+[pricing and support](docs/customer/pricing-and-support.md).
 The recovery targets are RPO 15 minutes and RTO 60 minutes, backed by
 continuous PostgreSQL WAL/PITR, daily encrypted full backups, and monthly
 isolated restore drills.
